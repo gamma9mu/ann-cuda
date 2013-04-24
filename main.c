@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include "data.h"
-#include "fforward.h"
 #include "backprop.h"
 
 int

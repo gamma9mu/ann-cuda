@@ -2,7 +2,6 @@
 #include <cuda_runtime_api.h>
 
 extern "C" {
-#include "fforward.h"
 #include "backprop.h"
 }
 
