@@ -10,6 +10,20 @@ sigmoid(float x) {
     return 1.0f / (1.0f + expf(-x));
 }
 
+/* Performs backpropagation learning on a feed forward neural netowrk.
+ * data         pointer to column-major, 2-d array of inputs
+ * count        the total number of items in data (each of INPUT_SIZE length)
+ * w_ih         pointer to the column-major weight matrix for the hidden layer
+ * w_ho         pointer to the column-major weight matrix for the output layer
+ * theta_h      pointer to the activation weights of the hidden layer
+ * theta_o      pointer to the activation weights of the output layer
+ * expected     pointer to the column-major, 2-d array out expected output
+ *              values (each of OUTPUT_SIZE length)
+ * rate         the learning rate of the ANN (a float between 0 and 1)
+ *
+ * The updated weight matrices will be copied over their previous values in
+ * device global memory after each of the items in data has been processed.
+ */
 __global__ void
 backprop(float *data, int count,
         float *w_ih, float *w_ho,
