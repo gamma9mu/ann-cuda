@@ -23,6 +23,10 @@ sigmoid(float x) {
  *
  * The updated weight matrices will be copied over their previous values in
  * device global memory after each of the items in data has been processed.
+ *
+ * This kernel should be called with 1 block, having a single dimension of
+ * threads, where the number of threads is the maximum of the number of hidden
+ * layer neurons and the number of output layer neurons.
  */
 __global__ void
 backprop(float *data, int count, float *expected,
@@ -151,6 +155,10 @@ backprop(float *data, int count, float *expected,
  *
  * The updated weight matrices will be copied over their previous values in
  * device global memory after each of the items in data has been processed.
+ *
+ * This kernel should be called with 1 block, having a single dimension of
+ * threads, where the number of threads is the maximum of the number of hidden
+ * layer neurons and the number of output layer neurons.
  */
 __global__ void
 evaluate(float *data, int count, float *expected,
