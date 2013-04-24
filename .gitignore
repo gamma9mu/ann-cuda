@@ -16,3 +16,6 @@
 *.out
 *.app
 ann_cuda
+
+# Miscellaneous
+.clang_complete
