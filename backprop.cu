@@ -11,24 +11,23 @@ sigmoid(float x) {
 }
 
 /* Performs backpropagation learning on a feed forward neural netowrk.
- * data         pointer to column-major, 2-d array of inputs
- * count        the total number of items in data (each of INPUT_SIZE length)
- * w_ih         pointer to the column-major weight matrix for the hidden layer
- * w_ho         pointer to the column-major weight matrix for the output layer
- * theta_h      pointer to the activation weights of the hidden layer
- * theta_o      pointer to the activation weights of the output layer
- * expected     pointer to the column-major, 2-d array out expected output
- *              values (each of OUTPUT_SIZE length)
- * rate         the learning rate of the ANN (a float between 0 and 1)
+ * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
+ * count        the total number of items in data
+ * expected     column-major, 2-d array out expected output values (each of
+ *              OUTPUT_SIZE length)
+ * w_ih         column-major weight matrix for the hidden layer
+ * theta_h      activation weights of the hidden layer
+ * w_ho         column-major weight matrix for the output layer
+ * theta_o      activation weights of the output layer
+ * rate         learning rate of the ANN (a float between 0 and 1)
  *
  * The updated weight matrices will be copied over their previous values in
  * device global memory after each of the items in data has been processed.
  */
 __global__ void
-backprop(float *data, int count,
-        float *w_ih, float *w_ho,
-        float *theta_h, float *theta_o,
-        float *expected, float rate)
+backprop(float *data, int count, float *expected,
+        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
+        float rate)
 {
     /* Hidden layer weights */
     __shared__ float w_hid[HIDDEN_SIZE][INPUT_SIZE];
