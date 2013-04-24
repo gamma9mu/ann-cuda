@@ -6,4 +6,6 @@
 
 #define HIDDEN_SIZE 20
 
+__global__ void backprop(float*, int, int, float*, float*, float*);
+
 #endif /* BACKPROP_H__ */
