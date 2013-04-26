@@ -157,13 +157,39 @@ backprop(float *data, int count, float *expected,
  */
 
 void backprop_wrapper(float *data, int count, float *expected, 
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o){
+        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
+        float rate){
     size_t size = count * sizeof(float);
     
-    float *d_data;
+    float* d_data;
     cudaMalloc(&d_data, size);
 
-    
+    float* d_expected;
+    cudaMalloc(&d_expected, size);
+
+    float* d_w_ih;
+    cudaMalloc(&d_w_ih, size);
+
+    float* d_theta_h;
+    cudaMalloc(&d_theta_h, size);
+
+    float* d_w_ho;
+    cudaMalloc(&d_w_ho, size);
+
+    float* d_theta_o;
+    cudaMalloc(&d_theta_o, size);
+
+    cudaMemcpy(d_data, data, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_expected, expected, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ih, w_ih, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_h, theta_h, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ho, w_ho, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_o, theta_o, size, cudaMemcpyHostToDevice);
+
+    int ThreadsPerBlock = 512;
+
+    backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
+            d_theta_h, d_w_ho, d_theta_o, rate);
 }
 
 /* Evaluates an ANN's sum of squared errors.
