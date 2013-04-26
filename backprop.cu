@@ -142,6 +142,30 @@ backprop(float *data, int count, float *expected,
     }
 }
 
+/* Copies data to device global memory from host memory
+ * data         column-major, 2-d array of inputs(each of INPUT_SIZE length
+ * count        the total number of items in data
+ * expected     column-major, 2-d array of expected output values (each of
+ *              OUTPUT_SIZE length)
+ * w_ih         column-major weight matrix for the hidden layer
+ * theta_h      activation weights of the hidden layer
+ * w_ho         column-major weight matrix for the output layer
+ * theta_o      activation weights of the output layer
+ * rate         learning rate of the ANN (a float between 0 and 1)
+ *
+ * This wrapper calls the backprop kernel with 1 block
+ */
+
+void backprop_wrapper(float *data, int count, float *expected, 
+        float *w_ih, float *theta_h, float *w_ho, float *theta_o){
+    size_t size = count * sizeof(float);
+    
+    float *d_data;
+    cudaMalloc(&d_data, size);
+
+    
+}
+
 /* Evaluates an ANN's sum of squared errors.
  * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
  * count        the total number of items in data
