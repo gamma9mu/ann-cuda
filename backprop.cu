@@ -352,7 +352,7 @@ evaluate(float *data, int count, float *expected,
  * threads, where the number of threads is the maximum of the number of hidden
  * layer neurons and the number of output layer neurons.
  */
-void elevate_wrapper(float *data, int count, float *expected,
+void evaluate_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
     
     /*Determines the size for input mallocs*/
@@ -364,31 +364,38 @@ void elevate_wrapper(float *data, int count, float *expected,
 
     /* Allocates the memory for data on the device */
     float *d_data;
-    cudaMalloc(&d_data, input_size);
+    if( cudaSuccess != cudaMalloc(&d_data, input_size) )
+        printf("Error allocating d_data for evaluate\n");
 
     /* Allocates the memory for exected on the device */
     float *d_expected;
-    cudaMalloc(&d_expected, output_size);
+    if( cudaSuccess != cudaMalloc(&d_expected, output_size) )
+        printf("Error allocating expected for evaluate\n");
 
     /* Allocates the memory for w_ih on the device */
     float *d_w_ih;
-    cudaMalloc(&d_w_ih, hidden_size);
+    if( cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) )
+        printf("Error allocating w_ih for evaluate\n");
 
     /* Allocates the memory for theta_h on the device */
     float *d_theta_h;
-    cudaMalloc(&d_theta_h, hidden_size);
+    if( cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) )
+        printf("Error allocating theta_h for evaluate\n");
     
     /* Allocates the memory for w_ho on the device */
     float *d_w_ho;
-    cudaMalloc(&d_w_ho, output_size);
+    if( cudaSuccess != cudaMalloc(&d_w_ho, output_size) )
+        printf("Error allocating w_ho for evaluate\n");
 
     /* Allocates the memory for theta_o on the device */
     float *d_theta_o;
-    cudaMalloc(&d_theta_o, output_size);
+    if( cudaSuccess != cudaMalloc(&d_theta_o, output_size) )
+        printf("Error allocating theta_o for evaluate\n");
 
     /* Allocates the memory for SSE on the device */
     float *d_sse;
-    cudaMalloc(&d_sse, input_size);
+    if( cudaSuccess != cudaMalloc(&d_sse, input_size) )
+        printf("Error allocating sse for evaluate\n");
 
 
     /* Copies all of the variables over to global memory on the device */
@@ -409,6 +416,10 @@ void elevate_wrapper(float *data, int count, float *expected,
     /* Runs the evaluate kernel with the proper parameters */
     evaluate<<<1, ThreadsPerBlock>>>(d_data, count, d_expected,
             d_w_ih, d_theta_h, d_w_ho, d_theta_o, d_sse);
+
+    /* Perform simple error checking on kernel run */
+    if( cudaSuccess != cudaGetLastError() )
+        printf("Error while running the evaluate kernel");
 
     /* Copies the output weights back to host memory */
     cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
