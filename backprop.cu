@@ -234,6 +234,8 @@ void backprop_wrapper(float *data, int count, float *expected,
     cudaFree(d_theta_h);
     cudaFree(d_w_ho);
     cudaFree(d_theta_o);
+
+    return;
 }
 
 /* Evaluates an ANN's sum of squared errors.
@@ -434,6 +436,7 @@ void evaluate_wrapper(float *data, int count, float *expected,
     cudaFree(d_theta_o);
     cudaFree(d_sse);
     
+    return;
 }
 
 /* Runs an ANN on a series of inputs.
@@ -622,5 +625,5 @@ void run_wrapper(float *data, int count, float *expected,
     cudaFree(d_theta_o);
     cudaFree(d_output);
 
-
+    return;
 }
