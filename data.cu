@@ -12,12 +12,12 @@ extern "C" {
  * performs cross-validation, and transposes it to column-major order.
  */
 
-__host__ void
-readdata( void )
+__host__ int
+readdata( float **data )
 {
     FILE *file;
-    float data[NUM_ROWS][NUM_COLUMNS];
-    float transpose[NUM_COLUMNS][NUM_ROWS];
+    float rmData[NUM_ROWS][NUM_COLUMNS]; //Row Major Order
+    float cmData[NUM_COLUMNS][NUM_ROWS]; //Column Major Order
     float maxValues[4];
     float minValues[4];
     int lineCount = 0;
@@ -47,7 +47,7 @@ readdata( void )
                 if(minValues[dataCount] > temp)
                     minValues[dataCount] = temp;
 
-                data[lineCount][dataCount] = temp;
+                rmData[lineCount][dataCount] = temp;
                 //printf("token: %s\n", token);
                 token = strtok(NULL, ",");
                 dataCount++;
@@ -67,13 +67,14 @@ readdata( void )
                 printf("Row %i Column %i : %f \n", i, j, data[i][j]);
             }
         }
-        */
+        
 
         printf("Max Values %f,%f,%f,%f \n", 
             maxValues[0],maxValues[1],maxValues[2],maxValues[3]);
 
          printf("Min Values %f,%f,%f,%f \n", 
             minValues[0],minValues[1],minValues[2],minValues[3]);
+         */
          
         //Normalize Data
         for(int i = 0; i < lineCount; i++)
@@ -81,14 +82,16 @@ readdata( void )
             for(int j = 0; j < 4; j++)
             {
                 //Normalize
-                data[i][j] = 
-                    ((data[i][j] - minValues[j])/(maxValues[j] - minValues[j]));
+                rmData[i][j] = 
+                    ((rmData[i][j] - minValues[j])/(maxValues[j] - minValues[j]));
 
                 //Transpose
-                transpose[j][i] = data[i][j];
+                cmData[j][i] = rmData[i][j];
             }
         }
         
+        *data = *cmData;
+
         /*
         for(int i = 0; i < lineCount; i++)
         {
@@ -99,4 +102,6 @@ readdata( void )
         }*/
 
     }
+
+    return lineCount;
 }
