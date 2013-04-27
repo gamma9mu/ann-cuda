@@ -189,12 +189,17 @@ void backprop_wrapper(float *data, int count, float *expected,
     cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_theta_o, theta_o, output_size, cudaMemcpyHostToDevice);
 
-    int ThreadsPerBlock = 512;
+    int ThreadsPerBlock;
+    if(OUTPUT_SIZE > HIDDEN_SIZE)
+        ThreadsPerBlock = OUTPUT_SIZE;
+    else
+        ThreadsPerBlock = HIDDEN_SIZE;
 
     backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
             d_theta_h, d_w_ho, d_theta_o, rate);
 
     cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
 
     cudaFree(d_data);
     cudaFree(d_expected);
@@ -304,6 +309,22 @@ evaluate(float *data, int count, float *expected,
         *sse = errsum;
     }
 }
+
+/* Copies over data to device global memory for evaluate
+ * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
+ * count        the total number of items in data
+ * expected     column-major, 2-d array of expected output values (each of
+ *              OUTPUT_SIZE length)
+ * w_ih         column-major weight matrix for the hidden layer
+ * theta_h      activation weights of the hidden layer
+ * w_ho         column-major weight matrix for the output layer
+ * theta_o      activation weights of the output layer
+ * sse          address in global memory to store the SSE into
+ *
+ * Calls the evaluate kernel with one block, having a single dimension of
+ * threads, where the number of threads is the maximum of the number of hidden
+ * layer neurons and the number of output layer neurons.
+ */
 
 /* Runs an ANN on a series of inputs.
  * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
