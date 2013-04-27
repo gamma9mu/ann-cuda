@@ -12,11 +12,12 @@ extern "C" {
  * performs cross-validation, and transposes it to column-major order.
  */
 
-int main ( void )
+__host__ void
+readdata( void )
 {
     FILE *file;
-    float data[150][4];
-    float transpose[4][150];
+    float data[NUM_ROWS][NUM_COLUMNS];
+    float transpose[NUM_COLUMNS][NUM_ROWS];
     float maxValues[4];
     float minValues[4];
     int lineCount = 0;
@@ -98,6 +99,4 @@ int main ( void )
         }*/
 
     }
-
-    return 0;
 }
