@@ -421,7 +421,7 @@ void evaluate_wrapper(float *data, int count, float *expected,
 
     /* Perform simple error checking on kernel run */
     if( cudaSuccess != cudaGetLastError() )
-        printf("Error while running the evaluate kernel");
+        printf("Error while running the evaluate kernel\n");
 
     /* Copies the output weights back to host memory */
     cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
