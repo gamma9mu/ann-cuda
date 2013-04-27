@@ -195,7 +195,6 @@ void backprop_wrapper(float *data, int count, float *expected,
             d_theta_h, d_w_ho, d_theta_o, rate);
 
     cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(theta_o, d_theta_o, output_size, cudaMemcpyDeviceToHost);
 
     cudaFree(d_data);
     cudaFree(d_expected);
