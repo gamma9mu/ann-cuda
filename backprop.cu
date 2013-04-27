@@ -1,5 +1,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cstdio>
 
 extern "C" {
 #include "backprop.h"
@@ -169,27 +170,33 @@ void backprop_wrapper(float *data, int count, float *expected,
     
     /* Allocates memory for input data on the device */
     float* d_data;
-    cudaMalloc(&d_data, input_size);
+    if(cudaSuccess != cudaMalloc(&d_data, input_size) )
+        printf("Error allocating d_data for backprop\n");
 
     /* Allocates memory for expected output on the device */
     float* d_expected;
-    cudaMalloc(&d_expected, output_size);
+    if(cudaSuccess != cudaMalloc(&d_expected, output_size) )
+        printf("Error allocating d_expected for backprop\n");
 
     /* Allocates memory for w_ih on the deivice */
     float* d_w_ih;
-    cudaMalloc(&d_w_ih, hidden_size);
+    if(cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) )
+        printf("Error allocating d_w_ih for backprop\n");
 
     /* Allocates memory for theta_h on the device */
     float* d_theta_h;
-    cudaMalloc(&d_theta_h, hidden_size);
+    if(cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) )
+        printf("Error allocating d_theta_h for backprop\n");
 
     /* Allocates memory for w_ho on the device */
     float* d_w_ho;
-    cudaMalloc(&d_w_ho, output_size);
+    if(cudaSuccess != cudaMalloc(&d_w_ho, output_size) )
+        printf("Error allocating d_w_ho for backprop\n");
 
     /* Allocates memory for theta_o on the device */
     float* d_theta_o;
-    cudaMalloc(&d_theta_o, output_size);
+    if(cudaSuccess != cudaMalloc(&d_theta_o, output_size) )
+        printf("Error allocating d_theta_o for backprop\n");
 
     /* Copies the variables from the host to the global memory
      * on the device
@@ -211,6 +218,10 @@ void backprop_wrapper(float *data, int count, float *expected,
     /* Executes the backprop kernel with the proper parameters */
     backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
             d_theta_h, d_w_ho, d_theta_o, rate);
+    
+    /* Check to see if any errors occurred during kernel call */
+    if( cudaSuccess != cudaGetLastError() )
+        printf("Error running the backprop kernel\n");
 
     /* Copies the output weights back to host memory */
     cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
