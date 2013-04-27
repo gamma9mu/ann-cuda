@@ -518,3 +518,60 @@ run(float *data, int count, float *expected,
         __syncthreads();
     }
 }
+
+/* Copies data over to device global memory for the run kernel
+ * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
+ * count        the total number of items in data
+ * w_ih         column-major weight matrix for the hidden layer
+ * theta_h      activation weights of the hidden layer
+ * w_ho         column-major weight matrix for the output layer
+ * theta_o      activation weights of the output layer
+ * output       column-major, 2-d array to hold the output values (each of
+ *              OUTPUT_SIZE length)
+ *
+ * This calls the run kernel with 1 block, having a single dimension of
+ * threads, where the number of threads is the maximum of the number of hidden
+ * layer neurons and the number of output layer neurons.
+ */
+
+void run_wrapper(float *data, int count, float *w_ih, float *theta_h, 
+        float *w_ho, float *theta_o, float *output) {
+
+    /* Determines the size for input */
+    size_t input_size = (count * INPUT_SIZE) * sizeof(float);
+    /* Determines the size for hidden sector */
+    size_t hidden_size = (count * HIDDEN_SIZE) * sizeof(float);
+    /* Determines the size of output */
+    size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
+
+    /* Allocate memory for data input on the device */
+    float *d_data;
+    if( cudaSuccess != cudaMalloc(&d_data, input_size) )
+        printf("Error allocating memory for data in run\n");
+
+    /* Allocate memory for w_ih on the device */
+    float *d_w_ih;
+    if( cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) )
+        printf("Error allocating memory for w_ih in run\n");
+
+    /* Allocate memory for theta_h on the device */
+    float *d_theta_h;
+    if( cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) )
+        printf("Error allocating memory for theta_h in run\n");
+
+    /* Allocate memory for w_ho on the device */
+    float *d_w_ho;
+    if( cudaSuccess != cudaMalloc(&d_w_ho, output_size) )
+        printf("Error allocating memory for w_ho in run\n");
+
+    /* Allocate memory for theta_o on the device */
+    float * d_theta_o;
+    if(cudaSuccess != cudaMalloc(&d_theta_o, output_size) )
+        printf("Error allocating memory for theta_o in run\n");
+
+    /* Allocate memory for output on the device */
+    float *d_output;
+    if( cudaSuccess != cudaMalloc(&d_output, output_size) )
+        printf("Error allocating memory for output in run\n");
+
+}
