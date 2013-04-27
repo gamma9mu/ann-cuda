@@ -159,37 +159,50 @@ backprop(float *data, int count, float *expected,
 void backprop_wrapper(float *data, int count, float *expected, 
         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
         float rate){
-    size_t size = count * sizeof(float);
+    size_t input_size = (count * INPUT_SIZE) * sizeof(float);
+    //size_t output_data_size = (count * OUTPUT_SIZE) * sizeof(float);
+    size_t hidden_size = (count * HIDDEN_SIZE) * sizeof(float);
+    size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
     
     float* d_data;
-    cudaMalloc(&d_data, size);
+    cudaMalloc(&d_data, input_size);
 
     float* d_expected;
-    cudaMalloc(&d_expected, size);
+    cudaMalloc(&d_expected, input_size);
 
     float* d_w_ih;
-    cudaMalloc(&d_w_ih, size);
+    cudaMalloc(&d_w_ih, hidden_size);
 
     float* d_theta_h;
-    cudaMalloc(&d_theta_h, size);
+    cudaMalloc(&d_theta_h, hidden_size);
 
     float* d_w_ho;
-    cudaMalloc(&d_w_ho, size);
+    cudaMalloc(&d_w_ho, output_size);
 
     float* d_theta_o;
-    cudaMalloc(&d_theta_o, size);
+    cudaMalloc(&d_theta_o, output_size);
 
-    cudaMemcpy(d_data, data, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_expected, expected, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ih, w_ih, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_h, theta_h, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ho, w_ho, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_o, theta_o, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_expected, expected, input_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ih, w_ih, hidden_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_h, theta_h, hidden_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_o, theta_o, output_size, cudaMemcpyHostToDevice);
 
     int ThreadsPerBlock = 512;
 
     backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
             d_theta_h, d_w_ho, d_theta_o, rate);
+
+    cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(theta_o, d_theta_o, output_size, cudaMemcpyDeviceToHost);
+
+    cudaFree(d_data);
+    cudaFree(d_expected);
+    cudaFree(d_w_ih);
+    cudaFree(d_theta_h);
+    cudaFree(d_w_ho);
+    cudaFree(d_theta_o);
 }
 
 /* Evaluates an ANN's sum of squared errors.
