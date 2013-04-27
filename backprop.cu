@@ -158,30 +158,42 @@ backprop(float *data, int count, float *expected,
 
 void backprop_wrapper(float *data, int count, float *expected, 
         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-        float rate){
+        float rate) {
+
+    /* Determines the size for input mallocs */
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
-    //size_t output_data_size = (count * OUTPUT_SIZE) * sizeof(float);
+    /* Determines the size for hiddent sector mallocs */
     size_t hidden_size = (count * HIDDEN_SIZE) * sizeof(float);
+    /* Determines the size for output mallocs */
     size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
     
+    /* Allocates memory for input data on the device */
     float* d_data;
     cudaMalloc(&d_data, input_size);
 
+    /* Allocates memory for expected output on the device */
     float* d_expected;
     cudaMalloc(&d_expected, output_size);
 
+    /* Allocates memory for w_ih on the deivice */
     float* d_w_ih;
     cudaMalloc(&d_w_ih, hidden_size);
 
+    /* Allocates memory for theta_h on the device */
     float* d_theta_h;
     cudaMalloc(&d_theta_h, hidden_size);
 
+    /* Allocates memory for w_ho on the device */
     float* d_w_ho;
     cudaMalloc(&d_w_ho, output_size);
 
+    /* Allocates memory for theta_o on the device */
     float* d_theta_o;
     cudaMalloc(&d_theta_o, output_size);
 
+    /* Copies the variables from the host to the global memory
+     * on the device
+     */
     cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_w_ih, w_ih, hidden_size, cudaMemcpyHostToDevice);
@@ -189,18 +201,22 @@ void backprop_wrapper(float *data, int count, float *expected,
     cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_theta_o, theta_o, output_size, cudaMemcpyHostToDevice);
 
+    /* Determines the number of threads based on output and hidden sizes */
     int ThreadsPerBlock;
     if(OUTPUT_SIZE > HIDDEN_SIZE)
         ThreadsPerBlock = OUTPUT_SIZE;
     else
         ThreadsPerBlock = HIDDEN_SIZE;
 
+    /* Executes the backprop kernel with the proper parameters */
     backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
             d_theta_h, d_w_ho, d_theta_o, rate);
 
+    /* Copies the output weights back to host memory */
     cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
 
+    /* Frees up the allocated memory on the device */
     cudaFree(d_data);
     cudaFree(d_expected);
     cudaFree(d_w_ih);
@@ -327,34 +343,44 @@ evaluate(float *data, int count, float *expected,
  */
 void elevate_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
-
+    
+    /*Determines the size for input mallocs*/
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
+    /*Determines the size for hidden sector mallocs*/
     size_t hidden_size = (count * HIDDEN_SIZE) * sizeof(float);
+    /*Determines the size for output mallocs*/
     size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
 
-    
+    /* Allocates the memory for data on the device */
     float *d_data;
     cudaMalloc(&d_data, input_size);
 
+    /* Allocates the memory for exected on the device */
     float *d_expected;
     cudaMalloc(&d_expected, output_size);
 
+    /* Allocates the memory for w_ih on the device */
     float *d_w_ih;
     cudaMalloc(&d_w_ih, hidden_size);
 
+    /* Allocates the memory for theta_h on the device */
     float *d_theta_h;
     cudaMalloc(&d_theta_h, hidden_size);
     
+    /* Allocates the memory for w_ho on the device */
     float *d_w_ho;
     cudaMalloc(&d_w_ho, output_size);
 
+    /* Allocates the memory for theta_o on the device */
     float *d_theta_o;
     cudaMalloc(&d_theta_o, output_size);
 
+    /* Allocates the memory for SSE on the device */
     float *d_sse;
     cudaMalloc(&d_sse, input_size);
 
 
+    /* Copies all of the variables over to global memory on the device */
     cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_w_ih, w_ih, hidden_size, cudaMemcpyHostToDevice);
@@ -362,18 +388,22 @@ void elevate_wrapper(float *data, int count, float *expected,
     cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_theta_o, theta_o, output_size, cudaMemcpyHostToDevice);
 
+    /* Determines what the number of threads should be */
     int ThreadsPerBlock;
     if(OUTPUT_SIZE > HIDDEN_SIZE)
         ThreadsPerBlock = OUTPUT_SIZE;
     else
         ThreadsPerBlock = HIDDEN_SIZE;
 
+    /* Runs the evaluate kernel with the proper parameters */
     evaluate<<<1, ThreadsPerBlock>>>(d_data, count, d_expected,
             d_w_ih, d_theta_h, d_w_ho, d_theta_o, d_sse);
 
+    /* Copies the output weights back to host memory */
     cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
 
+    /* Frees up the allocated memory on the device */
     cudaFree(d_data);
     cudaFree(d_expected);
     cudaFree(d_w_ih);
