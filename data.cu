@@ -16,12 +16,14 @@ int main ( void )
 {
     FILE *file;
     float data[150][4];
+    float transpose[4][150];
     float maxValues[4];
     float minValues[4];
     int lineCount = 0;
     int dataCount = 0;
     file = fopen("data/iris.data", "r");
     
+    //Read data from file and find max and min values for each column
     if ( file != NULL)
     {
         char line [128];
@@ -72,23 +74,28 @@ int main ( void )
          printf("Min Values %f,%f,%f,%f \n", 
             minValues[0],minValues[1],minValues[2],minValues[3]);
          
-
+        //Normalize Data
         for(int i = 0; i < lineCount; i++)
         {
             for(int j = 0; j < 4; j++)
             {
+                //Normalize
                 data[i][j] = 
                     ((data[i][j] - minValues[j])/(maxValues[j] - minValues[j]));
+
+                //Transpose
+                transpose[j][i] = data[i][j];
             }
         }
-
+        
+        /*
         for(int i = 0; i < lineCount; i++)
         {
             for(int j = 0; j < 4; j++)
             {
                 printf("Row %i Column %i : %f \n", i, j, data[i][j]);
             }
-        }
+        }*/
 
     }
 
