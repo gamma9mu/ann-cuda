@@ -534,8 +534,9 @@ run(float *data, int count, float *expected,
  * layer neurons and the number of output layer neurons.
  */
 
-void run_wrapper(float *data, int count, float *w_ih, float *theta_h, 
-        float *w_ho, float *theta_o, float *output) {
+void run_wrapper(float *data, int count, float *expected,
+        float *w_ih, float *theta_h, float *w_ho, 
+        float *theta_o, float *output) {
 
     /* Determines the size for input */
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
@@ -548,6 +549,11 @@ void run_wrapper(float *data, int count, float *w_ih, float *theta_h,
     float *d_data;
     if( cudaSuccess != cudaMalloc(&d_data, input_size) )
         printf("Error allocating memory for data in run\n");
+
+    /* Allocate memory for expected value on the device */
+    float *d_expected;
+    if( cudaSuccess != cudaMalloc(&d_expected, output_size) )
+        printf("Error allocating memory for expected in run\n");
 
     /* Allocate memory for w_ih on the device */
     float *d_w_ih;
@@ -573,5 +579,48 @@ void run_wrapper(float *data, int count, float *w_ih, float *theta_h,
     float *d_output;
     if( cudaSuccess != cudaMalloc(&d_output, output_size) )
         printf("Error allocating memory for output in run\n");
+
+    /* Copies the data from the host memory to the device
+     * global memory for the run kernel to use */
+
+    cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ih, w_ih, hidden_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_h, theta_h, hidden_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_o, theta_o, output_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_output, output, output_size, cudaMemcpyHostToDevice);
+
+    /* Determines the number of threads based on output size and hidden size */
+    int ThreadsPerBlock;
+    if(OUTPUT_SIZE > HIDDEN_SIZE)
+        ThreadsPerBlock = OUTPUT_SIZE;
+    else
+        ThreadsPerBlock = HIDDEN_SIZE;
+
+    /* Executes the run kernel with the proper parameters */
+    run<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
+            d_theta_h, d_w_ho, d_theta_o, d_output);
+
+    /* Checks to see if an error occurred while executing run */
+    if( cudaSuccess != cudaGetLastError() )
+        printf("Error while executing run kernel\n");
+
+    /* Copies the weights back to host memory */
+    cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
+
+    /* Copies the output back to host memory */
+    cudaMemcpy(output, d_output, output_size, cudaMemcpyDeviceToHost);
+
+    /* Frees up the memory on the device */
+    cudaFree(d_data);
+    cudaFree(d_expected);
+    cudaFree(d_w_ih);
+    cudaFree(d_theta_h);
+    cudaFree(d_w_ho);
+    cudaFree(d_theta_o);
+    cudaFree(d_output);
+
 
 }
