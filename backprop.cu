@@ -325,6 +325,64 @@ evaluate(float *data, int count, float *expected,
  * threads, where the number of threads is the maximum of the number of hidden
  * layer neurons and the number of output layer neurons.
  */
+void elevate_wrapper(float *data, int count, float *expected,
+        float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
+
+    size_t input_size = (count * INPUT_SIZE) * sizeof(float);
+    size_t hidden_size = (count * HIDDEN_SIZE) * sizeof(float);
+    size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
+
+    
+    float *d_data;
+    cudaMalloc(&d_data, input_size);
+
+    float *d_expected;
+    cudaMalloc(&d_expected, output_size);
+
+    float *d_w_ih;
+    cudaMalloc(&d_w_ih, hidden_size);
+
+    float *d_theta_h;
+    cudaMalloc(&d_theta_h, hidden_size);
+    
+    float *d_w_ho;
+    cudaMalloc(&d_w_ho, output_size);
+
+    float *d_theta_o;
+    cudaMalloc(&d_theta_o, output_size);
+
+    float *d_sse;
+    cudaMalloc(&d_sse, input_size);
+
+
+    cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ih, w_ih, hidden_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_h, theta_h, hidden_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_theta_o, theta_o, output_size, cudaMemcpyHostToDevice);
+
+    int ThreadsPerBlock;
+    if(OUTPUT_SIZE > HIDDEN_SIZE)
+        ThreadsPerBlock = OUTPUT_SIZE;
+    else
+        ThreadsPerBlock = HIDDEN_SIZE;
+
+    evaluate<<<1, ThreadsPerBlock>>>(d_data, count, d_expected,
+            d_w_ih, d_theta_h, d_w_ho, d_theta_o, d_sse);
+
+    cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
+
+    cudaFree(d_data);
+    cudaFree(d_expected);
+    cudaFree(d_w_ih);
+    cudaFree(d_theta_h);
+    cudaFree(d_w_ho);
+    cudaFree(d_theta_o);
+    cudaFree(d_sse);
+    
+}
 
 /* Runs an ANN on a series of inputs.
  * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
