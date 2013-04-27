@@ -168,7 +168,7 @@ void backprop_wrapper(float *data, int count, float *expected,
     cudaMalloc(&d_data, input_size);
 
     float* d_expected;
-    cudaMalloc(&d_expected, input_size);
+    cudaMalloc(&d_expected, output_size);
 
     float* d_w_ih;
     cudaMalloc(&d_w_ih, hidden_size);
@@ -183,7 +183,7 @@ void backprop_wrapper(float *data, int count, float *expected,
     cudaMalloc(&d_theta_o, output_size);
 
     cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_expected, expected, input_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_w_ih, w_ih, hidden_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_theta_h, theta_h, hidden_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_w_ho, w_ho, output_size, cudaMemcpyHostToDevice);
