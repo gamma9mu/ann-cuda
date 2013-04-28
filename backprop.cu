@@ -7,7 +7,8 @@ extern "C" {
 }
 
 __device__ inline float
-sigmoid(float x) {
+sigmoid(float x)
+{
     return 1.0f / (1.0f + expf(-x));
 }
 
@@ -31,8 +32,8 @@ sigmoid(float x) {
  */
 __global__ void
 backprop(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-        float rate)
+         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
+         float rate)
 {
     /* Hidden layer weights */
     __shared__ float w_hid[HIDDEN_SIZE][INPUT_SIZE];
@@ -56,41 +57,46 @@ backprop(float *data, int count, float *expected,
     /* Load the hidden layer's theta values and weight matrix. */
     if (tx < HIDDEN_SIZE) {
         th_h[tx] = theta_h[tx];
-        for (int i = 0; i < INPUT_SIZE; ++i)
+        for (int i = 0; i < INPUT_SIZE; ++i) {
             w_hid[tx][i] = w_ih[tx + (INPUT_SIZE * i)];
+        }
     }
 
     /* Load the output layer's theta values and weight matrix. */
     if (tx < OUTPUT_SIZE) {
         th_o[tx] = theta_o[tx];
-        for (int i = 0; i < HIDDEN_SIZE; ++i)
+        for (int i = 0; i < HIDDEN_SIZE; ++i) {
             w_out[tx][i] = w_ho[tx + (OUTPUT_SIZE * i)];
+        }
     }
 
     /* Process each piece of input data. */
     for (int i = 0; i < count; ++i) {
         /* Load the data item. */
-        if (tx < INPUT_SIZE)
+        if (tx < INPUT_SIZE) {
             input[tx] = data[tx + (i * INPUT_SIZE)];
+        }
 
         __syncthreads();
-        
+
         /* Propagate through the hidden layer. */
         if (tx < HIDDEN_SIZE) {
             hid[tx] = 0.0f;
-            for (int j = 0; j < INPUT_SIZE; ++j)
+            for (int j = 0; j < INPUT_SIZE; ++j) {
                 hid[tx] += input[j] * w_hid[tx][j];
+            }
             hid[tx] -= th_h[tx];
             hid[tx] = sigmoid(hid[tx]);
         }
-        
+
         __syncthreads();
 
         /* Propagate through the output layer. */
         if (tx < OUTPUT_SIZE) {
             out[tx] = 0.0f;
-            for (int j = 0; j < HIDDEN_SIZE; ++j)
+            for (int j = 0; j < HIDDEN_SIZE; ++j) {
                 out[tx] += hid[j] * w_out[tx][j];
+            }
             out[tx] -= th_o[tx];
             out[tx] = sigmoid(out[tx]);
         }
@@ -111,11 +117,13 @@ backprop(float *data, int count, float *expected,
          * weights. */
         if (tx < HIDDEN_SIZE) {
             float hdelta = 0.0f;
-            for (int j = 0; j < OUTPUT_SIZE; ++j)
+            for (int j = 0; j < OUTPUT_SIZE; ++j) {
                 hdelta += delta[j] * hid[tx];
+            }
             hdelta *= rate;
-            for (int j = 0; j < INPUT_SIZE; ++j)
+            for (int j = 0; j < INPUT_SIZE; ++j) {
                 w_hid[tx][j] += hdelta * input[j];
+            }
         }
 
         __syncthreads();
@@ -124,22 +132,25 @@ backprop(float *data, int count, float *expected,
          * combined above.  The changes would affect the hidden layer updates.
          */
         if (tx < OUTPUT_SIZE)
-            for (int j = 0; j < HIDDEN_SIZE; ++j)
+            for (int j = 0; j < HIDDEN_SIZE; ++j) {
                 w_out[tx][j] += rate * hid[j] * delta[tx];
+            }
 
         __syncthreads();
     }
 
     /* Copy the hidden layer's weight matrix out to global memory. */
     if (tx < HIDDEN_SIZE) {
-        for (int i = 0; i < INPUT_SIZE; ++i)
-             w_ih[tx + (INPUT_SIZE * i)] = w_hid[tx][i];
+        for (int i = 0; i < INPUT_SIZE; ++i) {
+            w_ih[tx + (INPUT_SIZE * i)] = w_hid[tx][i];
+        }
     }
 
     /* Copy the output layer's weight matrix out to global memory. */
     if (tx < OUTPUT_SIZE) {
-        for (int i = 0; i < HIDDEN_SIZE; ++i)
-             w_ho[tx + (OUTPUT_SIZE * i)] = w_out[tx][i];
+        for (int i = 0; i < HIDDEN_SIZE; ++i) {
+            w_ho[tx + (OUTPUT_SIZE * i)] = w_out[tx][i];
+        }
     }
 }
 
@@ -157,9 +168,10 @@ backprop(float *data, int count, float *expected,
  * This wrapper calls the backprop kernel with 1 block
  */
 
-extern "C" void backprop_wrapper(float *data, int count, float *expected, 
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-        float rate) {
+extern "C" void backprop_wrapper(float *data, int count, float *expected,
+                                 float *w_ih, float *theta_h, float *w_ho, float *theta_o,
+                                 float rate)
+{
 
     /* Determines the size for input mallocs */
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
@@ -167,36 +179,48 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
     size_t hidden_size = (count * HIDDEN_SIZE) * sizeof(float);
     /* Determines the size for output mallocs */
     size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
-    
+
     /* Allocates memory for input data on the device */
     float* d_data;
-    if(cudaSuccess != cudaMalloc(&d_data, input_size) )
+    if(cudaSuccess != cudaMalloc(&d_data, input_size) ) {
         printf("Error allocating d_data for backprop\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates memory for expected output on the device */
     float* d_expected;
-    if(cudaSuccess != cudaMalloc(&d_expected, output_size) )
+    if(cudaSuccess != cudaMalloc(&d_expected, output_size) ) {
         printf("Error allocating d_expected for backprop\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates memory for w_ih on the deivice */
     float* d_w_ih;
-    if(cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) )
+    if(cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) ) {
         printf("Error allocating d_w_ih for backprop\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates memory for theta_h on the device */
     float* d_theta_h;
-    if(cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) )
+    if(cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) ) {
         printf("Error allocating d_theta_h for backprop\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates memory for w_ho on the device */
     float* d_w_ho;
-    if(cudaSuccess != cudaMalloc(&d_w_ho, output_size) )
+    if(cudaSuccess != cudaMalloc(&d_w_ho, output_size) ) {
         printf("Error allocating d_w_ho for backprop\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates memory for theta_o on the device */
     float* d_theta_o;
-    if(cudaSuccess != cudaMalloc(&d_theta_o, output_size) )
+    if(cudaSuccess != cudaMalloc(&d_theta_o, output_size) ) {
         printf("Error allocating d_theta_o for backprop\n");
+        exit(cudaGetLastError());
+    }
 
     /* Copies the variables from the host to the global memory
      * on the device
@@ -210,18 +234,21 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
 
     /* Determines the number of threads based on output and hidden sizes */
     int ThreadsPerBlock;
-    if(OUTPUT_SIZE > HIDDEN_SIZE)
+    if(OUTPUT_SIZE > HIDDEN_SIZE) {
         ThreadsPerBlock = OUTPUT_SIZE;
-    else
+    } else {
         ThreadsPerBlock = HIDDEN_SIZE;
+    }
 
     /* Executes the backprop kernel with the proper parameters */
     backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
-            d_theta_h, d_w_ho, d_theta_o, rate);
-    
+                                     d_theta_h, d_w_ho, d_theta_o, rate);
+
     /* Check to see if any errors occurred during kernel call */
-    if( cudaSuccess != cudaGetLastError() )
+    if( cudaSuccess != cudaGetLastError() ) {
         printf("Error running the backprop kernel\n");
+        exit(cudaGetLastError());
+    }
 
     /* Copies the output weights back to host memory */
     cudaMemcpy(w_ho, d_w_ho, output_size, cudaMemcpyDeviceToHost);
@@ -255,8 +282,8 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
  */
 __global__ void
 evaluate(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-        float *sse)
+         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
+         float *sse)
 {
     /* Hidden layer weights */
     __shared__ float w_hid[HIDDEN_SIZE][INPUT_SIZE];
@@ -279,42 +306,47 @@ evaluate(float *data, int count, float *expected,
     /* Load the hidden layer's theta values and weight matrix. */
     if (tx < HIDDEN_SIZE) {
         th_h[tx] = theta_h[tx];
-        for (int i = 0; i < INPUT_SIZE; ++i)
+        for (int i = 0; i < INPUT_SIZE; ++i) {
             w_hid[tx][i] = w_ih[tx + (INPUT_SIZE * i)];
+        }
     }
 
     /* Load the output layer's theta values and weight matrix. */
     if (tx < OUTPUT_SIZE) {
         th_o[tx] = theta_o[tx];
-        for (int i = 0; i < HIDDEN_SIZE; ++i)
+        for (int i = 0; i < HIDDEN_SIZE; ++i) {
             w_out[tx][i] = w_ho[tx + (OUTPUT_SIZE * i)];
+        }
         errors[tx] = 0.0f;
     }
 
     /* Process each piece of input data. */
     for (int i = 0; i < count; ++i) {
         /* Load the data item. */
-        if (tx < INPUT_SIZE)
+        if (tx < INPUT_SIZE) {
             input[tx] = data[tx + (i * INPUT_SIZE)];
+        }
 
         __syncthreads();
-        
+
         /* Propagate through the hidden layer. */
         if (tx < HIDDEN_SIZE) {
             hid[tx] = 0.0f;
-            for (int j = 0; j < INPUT_SIZE; ++j)
+            for (int j = 0; j < INPUT_SIZE; ++j) {
                 hid[tx] += input[j] * w_hid[tx][j];
+            }
             hid[tx] -= th_h[tx];
             hid[tx] = sigmoid(hid[tx]);
         }
-        
+
         __syncthreads();
 
         /* Propagate through the output layer. */
         if (tx < OUTPUT_SIZE) {
             out[tx] = 0.0f;
-            for (int j = 0; j < HIDDEN_SIZE; ++j)
+            for (int j = 0; j < HIDDEN_SIZE; ++j) {
                 out[tx] += hid[j] * w_out[tx][j];
+            }
             out[tx] -= th_o[tx];
             out[tx] = sigmoid(out[tx]);
         }
@@ -333,8 +365,9 @@ evaluate(float *data, int count, float *expected,
     /* Sum individual output neuron's SSE and write to global memory. */
     if (tx == 0) {
         float errsum = 0.0f;
-        for (int i = 0; i < OUTPUT_SIZE; ++i)
+        for (int i = 0; i < OUTPUT_SIZE; ++i) {
             errsum += errors[i];
+        }
         *sse = errsum;
     }
 }
@@ -355,8 +388,9 @@ evaluate(float *data, int count, float *expected,
  * layer neurons and the number of output layer neurons.
  */
 extern "C" void evaluate_wrapper(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
-    
+                                 float *w_ih, float *theta_h, float *w_ho, float *theta_o)
+{
+
     /*Determines the size for input mallocs*/
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
     /*Determines the size for hidden sector mallocs*/
@@ -366,38 +400,52 @@ extern "C" void evaluate_wrapper(float *data, int count, float *expected,
 
     /* Allocates the memory for data on the device */
     float *d_data;
-    if( cudaSuccess != cudaMalloc(&d_data, input_size) )
+    if( cudaSuccess != cudaMalloc(&d_data, input_size) ) {
         printf("Error allocating d_data for evaluate\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates the memory for exected on the device */
     float *d_expected;
-    if( cudaSuccess != cudaMalloc(&d_expected, output_size) )
+    if( cudaSuccess != cudaMalloc(&d_expected, output_size) ) {
         printf("Error allocating expected for evaluate\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates the memory for w_ih on the device */
     float *d_w_ih;
-    if( cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) )
+    if( cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) ) {
         printf("Error allocating w_ih for evaluate\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates the memory for theta_h on the device */
     float *d_theta_h;
-    if( cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) )
+    if( cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) ) {
         printf("Error allocating theta_h for evaluate\n");
-    
+        exit(cudaGetLastError());
+    }
+
     /* Allocates the memory for w_ho on the device */
     float *d_w_ho;
-    if( cudaSuccess != cudaMalloc(&d_w_ho, output_size) )
+    if( cudaSuccess != cudaMalloc(&d_w_ho, output_size) ) {
         printf("Error allocating w_ho for evaluate\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates the memory for theta_o on the device */
     float *d_theta_o;
-    if( cudaSuccess != cudaMalloc(&d_theta_o, output_size) )
+    if( cudaSuccess != cudaMalloc(&d_theta_o, output_size) ) {
         printf("Error allocating theta_o for evaluate\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocates the memory for SSE on the device */
     float *d_sse;
-    if( cudaSuccess != cudaMalloc(&d_sse, input_size) )
+    if( cudaSuccess != cudaMalloc(&d_sse, input_size) ) {
         printf("Error allocating sse for evaluate\n");
+        exit(cudaGetLastError());
+    }
 
 
     /* Copies all of the variables over to global memory on the device */
@@ -410,18 +458,21 @@ extern "C" void evaluate_wrapper(float *data, int count, float *expected,
 
     /* Determines what the number of threads should be */
     int ThreadsPerBlock;
-    if(OUTPUT_SIZE > HIDDEN_SIZE)
+    if(OUTPUT_SIZE > HIDDEN_SIZE) {
         ThreadsPerBlock = OUTPUT_SIZE;
-    else
+    } else {
         ThreadsPerBlock = HIDDEN_SIZE;
+    }
 
     /* Runs the evaluate kernel with the proper parameters */
     evaluate<<<1, ThreadsPerBlock>>>(d_data, count, d_expected,
-            d_w_ih, d_theta_h, d_w_ho, d_theta_o, d_sse);
+                                     d_w_ih, d_theta_h, d_w_ho, d_theta_o, d_sse);
 
     /* Perform simple error checking on kernel run */
-    if( cudaSuccess != cudaGetLastError() )
+    if( cudaSuccess != cudaGetLastError() ) {
         printf("Error while running the evaluate kernel\n");
+        exit(cudaGetLastError());
+    }
 
     /* Copies the output weights back to host memory */
     cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);
@@ -435,7 +486,7 @@ extern "C" void evaluate_wrapper(float *data, int count, float *expected,
     cudaFree(d_w_ho);
     cudaFree(d_theta_o);
     cudaFree(d_sse);
-    
+
     return;
 }
 
@@ -455,8 +506,8 @@ extern "C" void evaluate_wrapper(float *data, int count, float *expected,
  */
 __global__ void
 run(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-        float *output)
+    float *w_ih, float *theta_h, float *w_ho, float *theta_o,
+    float *output)
 {
     /* Hidden layer weights */
     __shared__ float w_hid[HIDDEN_SIZE][INPUT_SIZE];
@@ -478,42 +529,47 @@ run(float *data, int count, float *expected,
     /* Load the hidden layer's theta values and weight matrix. */
     if (tx < HIDDEN_SIZE) {
         th_h[tx] = theta_h[tx];
-        for (int i = 0; i < INPUT_SIZE; ++i)
+        for (int i = 0; i < INPUT_SIZE; ++i) {
             w_hid[tx][i] = w_ih[tx + (INPUT_SIZE * i)];
+        }
     }
 
     /* Load the output layer's theta values and weight matrix. */
     if (tx < OUTPUT_SIZE) {
         th_o[tx] = theta_o[tx];
-        for (int i = 0; i < HIDDEN_SIZE; ++i)
+        for (int i = 0; i < HIDDEN_SIZE; ++i) {
             w_out[tx][i] = w_ho[tx + (OUTPUT_SIZE * i)];
+        }
     }
 
     /* Process each piece of input data. */
     for (int i = 0; i < count; ++i) {
         /* Load the data item. */
-        if (tx < INPUT_SIZE)
+        if (tx < INPUT_SIZE) {
             input[tx] = data[tx + (i * INPUT_SIZE)];
+        }
 
         __syncthreads();
-        
+
         /* Propagate through the hidden layer. */
         if (tx < HIDDEN_SIZE) {
             hid[tx] = 0.0f;
-            for (int j = 0; j < INPUT_SIZE; ++j)
+            for (int j = 0; j < INPUT_SIZE; ++j) {
                 hid[tx] += input[j] * w_hid[tx][j];
+            }
             hid[tx] -= th_h[tx];
             hid[tx] = sigmoid(hid[tx]);
         }
-        
+
         __syncthreads();
 
         /* Propagate through the output layer and write the results to device
          * global memory. */
         if (tx < OUTPUT_SIZE) {
             out[tx] = 0.0f;
-            for (int j = 0; j < HIDDEN_SIZE; ++j)
+            for (int j = 0; j < HIDDEN_SIZE; ++j) {
                 out[tx] += hid[j] * w_out[tx][j];
+            }
             out[tx] -= th_o[tx];
             output[tx + (OUTPUT_SIZE * i)] = sigmoid(out[tx]);
         }
@@ -538,8 +594,9 @@ run(float *data, int count, float *expected,
  */
 
 extern "C" void run_wrapper(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, 
-        float *theta_o, float *output) {
+                            float *w_ih, float *theta_h, float *w_ho,
+                            float *theta_o, float *output)
+{
 
     /* Determines the size for input */
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
@@ -550,38 +607,52 @@ extern "C" void run_wrapper(float *data, int count, float *expected,
 
     /* Allocate memory for data input on the device */
     float *d_data;
-    if( cudaSuccess != cudaMalloc(&d_data, input_size) )
+    if( cudaSuccess != cudaMalloc(&d_data, input_size) ) {
         printf("Error allocating memory for data in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocate memory for expected value on the device */
     float *d_expected;
-    if( cudaSuccess != cudaMalloc(&d_expected, output_size) )
+    if( cudaSuccess != cudaMalloc(&d_expected, output_size) ) {
         printf("Error allocating memory for expected in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocate memory for w_ih on the device */
     float *d_w_ih;
-    if( cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) )
+    if( cudaSuccess != cudaMalloc(&d_w_ih, hidden_size) ) {
         printf("Error allocating memory for w_ih in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocate memory for theta_h on the device */
     float *d_theta_h;
-    if( cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) )
+    if( cudaSuccess != cudaMalloc(&d_theta_h, hidden_size) ) {
         printf("Error allocating memory for theta_h in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocate memory for w_ho on the device */
     float *d_w_ho;
-    if( cudaSuccess != cudaMalloc(&d_w_ho, output_size) )
+    if( cudaSuccess != cudaMalloc(&d_w_ho, output_size) ) {
         printf("Error allocating memory for w_ho in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocate memory for theta_o on the device */
     float * d_theta_o;
-    if(cudaSuccess != cudaMalloc(&d_theta_o, output_size) )
+    if(cudaSuccess != cudaMalloc(&d_theta_o, output_size) ) {
         printf("Error allocating memory for theta_o in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Allocate memory for output on the device */
     float *d_output;
-    if( cudaSuccess != cudaMalloc(&d_output, output_size) )
+    if( cudaSuccess != cudaMalloc(&d_output, output_size) ) {
         printf("Error allocating memory for output in run\n");
+        exit(cudaGetLastError());
+    }
 
     /* Copies the data from the host memory to the device
      * global memory for the run kernel to use */
@@ -596,18 +667,21 @@ extern "C" void run_wrapper(float *data, int count, float *expected,
 
     /* Determines the number of threads based on output size and hidden size */
     int ThreadsPerBlock;
-    if(OUTPUT_SIZE > HIDDEN_SIZE)
+    if(OUTPUT_SIZE > HIDDEN_SIZE) {
         ThreadsPerBlock = OUTPUT_SIZE;
-    else
+    } else {
         ThreadsPerBlock = HIDDEN_SIZE;
+    }
 
     /* Executes the run kernel with the proper parameters */
     run<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
-            d_theta_h, d_w_ho, d_theta_o, d_output);
+                                d_theta_h, d_w_ho, d_theta_o, d_output);
 
     /* Checks to see if an error occurred while executing run */
-    if( cudaSuccess != cudaGetLastError() )
+    if( cudaSuccess != cudaGetLastError() ) {
         printf("Error while executing run kernel\n");
+        exit(cudaGetLastError());
+    }
 
     /* Copies the weights back to host memory */
     cudaMemcpy(w_ih, d_w_ih, hidden_size, cudaMemcpyDeviceToHost);

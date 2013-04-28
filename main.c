@@ -40,3 +40,10 @@ main(int argc, char *argv[]) {
     return EXIT_SUCCESS;
 }
 
+float randw(int numPrevious) {
+    float weight = ((float)rand())/((float)RAND_MAX);
+    weight *= numPrevious;
+    weight -= numPrevious / 2.0f;
+
+    return weight;
+}
