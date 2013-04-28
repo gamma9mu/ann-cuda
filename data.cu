@@ -13,7 +13,7 @@ extern "C" {
  */
 
 extern "C" int
-readdata( float **data )
+readdata( float *data )
 {
     FILE *file;
     float rmData[NUM_ROWS][NUM_COLUMNS]; //Row Major Order
@@ -90,7 +90,7 @@ readdata( float **data )
             }
         }
         
-        *data = *cmData;
+        data = *cmData;
 
         /*
         for(int i = 0; i < lineCount; i++)
