@@ -16,8 +16,18 @@ extern "C" int
 readdata( float *data )
 {
     FILE *file;
-    float rmData[NUM_ROWS][NUM_COLUMNS]; //Row Major Order
-    float cmData[NUM_COLUMNS][NUM_ROWS]; //Column Major Order
+    float** rmData; //Row Major Order
+    rmData = (float**)malloc(NUM_ROWS * sizeof(float*));
+    for (int i = 0; i < NUM_ROWS; i++) {
+        rmData[i] = (float*)malloc(NUM_COLUMNS * sizeof(float));
+    }
+
+    float** cmData; //Column Major Order
+    cmData = (float**)malloc(NUM_ROWS * sizeof(float*));
+    for (int i = 0; i < NUM_COLUMNS; i++) {
+        cmData[i] = (float*)malloc(NUM_ROWS * sizeof(float));
+    }
+
     float maxValues[4];
     float minValues[4];
     int lineCount = 0;
