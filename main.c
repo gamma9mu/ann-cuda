@@ -17,7 +17,7 @@ main(int argc, char *argv[]) {
 
     int count;
 
-    //count = readdata( data );
+    readdata( data );
 
     return EXIT_SUCCESS;
 }

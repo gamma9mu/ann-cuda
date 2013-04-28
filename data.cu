@@ -12,7 +12,7 @@ extern "C" {
  * performs cross-validation, and transposes it to column-major order.
  */
 
-__host__ int
+extern "C" int
 readdata( float **data )
 {
     FILE *file;

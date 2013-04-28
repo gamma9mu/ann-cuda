@@ -157,7 +157,7 @@ backprop(float *data, int count, float *expected,
  * This wrapper calls the backprop kernel with 1 block
  */
 
-void backprop_wrapper(float *data, int count, float *expected, 
+extern "C" void backprop_wrapper(float *data, int count, float *expected, 
         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
         float rate) {
 
@@ -354,7 +354,7 @@ evaluate(float *data, int count, float *expected,
  * threads, where the number of threads is the maximum of the number of hidden
  * layer neurons and the number of output layer neurons.
  */
-void evaluate_wrapper(float *data, int count, float *expected,
+extern "C" void evaluate_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
     
     /*Determines the size for input mallocs*/
@@ -537,7 +537,7 @@ run(float *data, int count, float *expected,
  * layer neurons and the number of output layer neurons.
  */
 
-void run_wrapper(float *data, int count, float *expected,
+extern "C" void run_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, 
         float *theta_o, float *output) {
 
