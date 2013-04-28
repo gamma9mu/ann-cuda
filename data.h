@@ -4,4 +4,8 @@
 #define NUM_ROWS 150
 #define NUM_COLUMNS 4
 
-#endif /* DATA_H__ */
+#endif 
+
+__host__ int readdata( float **data );
+
+/* DATA_H__ */
