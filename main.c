@@ -12,12 +12,12 @@ main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
     
-    float *data, *expected, *w_ih, *theta_h, *w_ho,
+    float **data, *expected, *w_ih, *theta_h, *w_ho,
           *theta_o, *output;
 
     int count;
 
-    //count = readdata( &data );
+    //count = readdata( data );
 
     return EXIT_SUCCESS;
 }

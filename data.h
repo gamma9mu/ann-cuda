@@ -6,6 +6,6 @@
 
 #endif 
 
-__host__ int readdata( float **data );
+int readdata( float **data );
 
 /* DATA_H__ */
