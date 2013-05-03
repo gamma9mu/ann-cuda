@@ -19,6 +19,7 @@ main(int argc, char *argv[])
     float *data, *expected, *w_ih, *theta_h, *w_ho,
           *theta_o, *output;
 
+    int i, j;
     int count;
 
 
@@ -47,6 +48,20 @@ main(int argc, char *argv[])
         die("main: malloc");
     if ((output = malloc(output_size)) == NULL)
         die("main: malloc");
+
+    /* Initialize the weight matrices. */
+    for (i = 0; i < INPUT_SIZE; ++i)
+        for (j = 0; j < HIDDEN_SIZE; ++j)
+            w_ih[(j * HIDDEN_SIZE) + i] = randw(INPUT_SIZE);
+    for (i = 0; i < HIDDEN_SIZE; ++i)
+        for (j = 0; j < OUTPUT_SIZE; ++j)
+            w_ih[(j * OUTPUT_SIZE) + i] = randw(HIDDEN_SIZE);
+
+    /* Initialize the thetas. */
+    for (i = 0; i < HIDDEN_SIZE; ++i)
+        theta_h[i] = rand() / (float) RAND_MAX;
+    for (i = 0; i < OUTPUT_SIZE; ++i)
+        theta_o[i] = rand() / (float) RAND_MAX;
 
     return EXIT_SUCCESS;
 }
