@@ -1,5 +1,5 @@
 CC := nvcc
-CFLAGS := -g -O0
+CFLAGS := -g -G -O0 -arch=sm_10
 LDFLAGS := -L/opt/cuda/lib64/ -lcuda -lcudart
 
 .PHONY: all clean
