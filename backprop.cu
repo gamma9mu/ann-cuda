@@ -464,7 +464,7 @@ extern "C" float evaluate_wrapper(float *data, int count, float *expected,
 
     /* Allocates the memory for SSE on the device */
     float *d_sse;
-    if( cudaSuccess != cudaMalloc(&d_sse, input_size) ) {
+    if( cudaSuccess != cudaMalloc(&d_sse, sizeof(float)) ) {
         printf("Error allocating sse for evaluate\n");
         exit(cudaGetLastError());
     }
