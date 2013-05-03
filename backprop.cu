@@ -69,7 +69,7 @@ backprop(float *data, int count, float *expected,
     if (tx < HIDDEN_SIZE) {
         th_h[tx] = theta_h[tx];
         for (int i = 0; i < INPUT_SIZE; ++i) {
-            w_hid[tx][i] = w_ih[tx + (INPUT_SIZE * i)];
+            w_hid[tx][i] = w_ih[(tx * INPUT_SIZE) + i];
         }
     }
 
@@ -77,7 +77,7 @@ backprop(float *data, int count, float *expected,
     if (tx < OUTPUT_SIZE) {
         th_o[tx] = theta_o[tx];
         for (int i = 0; i < HIDDEN_SIZE; ++i) {
-            w_out[tx][i] = w_ho[tx + (OUTPUT_SIZE * i)];
+            w_out[tx][i] = w_ho[(tx * HIDDEN_SIZE) + i];
         }
     }
 
@@ -153,14 +153,14 @@ backprop(float *data, int count, float *expected,
     /* Copy the hidden layer's weight matrix out to global memory. */
     if (tx < HIDDEN_SIZE) {
         for (int i = 0; i < INPUT_SIZE; ++i) {
-            w_ih[tx + (INPUT_SIZE * i)] = w_hid[tx][i];
+            w_ih[(tx * INPUT_SIZE) + i] = w_hid[tx][i];
         }
     }
 
     /* Copy the output layer's weight matrix out to global memory. */
     if (tx < OUTPUT_SIZE) {
         for (int i = 0; i < HIDDEN_SIZE; ++i) {
-            w_ho[tx + (OUTPUT_SIZE * i)] = w_out[tx][i];
+            w_ho[(tx * HIDDEN_SIZE) + i] = w_out[tx][i];
         }
     }
 }
