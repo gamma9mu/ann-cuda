@@ -120,7 +120,7 @@ readexpected(float **expected) {
     int fields, lines = 0;
     float *data = (float *) malloc(NUM_COLUMNS * NUM_ROWS * sizeof(float));
 
-    if ((f = fopen("data/iris.data", "r")) == NULL) {
+    if ((f = fopen("data/iris.output", "r")) == NULL) {
         free(data);
         fprintf(stderr, "Could not open training data result file.\n");
         exit(EXIT_FAILURE);
