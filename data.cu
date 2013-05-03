@@ -1,3 +1,8 @@
+/* Ensure strtof is available. */
+#if (!defined(_POSIX_C_SOURCE)) || (_POSIX_C_SOURCE < 200112L)
+#define _POSIX_C_SOURCE 200112L;
+#endif
+
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <stdlib.h>
@@ -6,7 +11,11 @@
 
 extern "C" {
 #include "data.h"
+#include "backprop.h"
 }
+
+#define BUF_SZ 256
+
 
 /* Performs normalization on a data set read in row-major order, normalizes it,
  * performs cross-validation, and transposes it to column-major order.
@@ -102,4 +111,33 @@ readdata( float **data )
     }
 
     return lineCount;
+}
+
+extern "C" int
+readexpected(float **expected) {
+    FILE *f;
+    char buf[BUF_SZ];
+    int fields, lines = 0;
+    float *data = (float *) malloc(NUM_COLUMNS * NUM_ROWS * sizeof(float));
+
+    if ((f = fopen("data/iris.data", "r")) == NULL) {
+        free(data);
+        fprintf(stderr, "Could not open training data result file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    while (fgets(buf, BUF_SZ, f) != NULL) {
+        char *str = strtok(buf, ",");
+        fields = 0;
+        while (str && fields < OUTPUT_SIZE) {
+            data[(lines * OUTPUT_SIZE) + fields] = strtof(str, NULL);
+            str = strtok(NULL, ",");
+            ++fields;
+        }
+        ++lines;
+    }
+    fclose(f);
+
+    *expected = data;
+    return lines;
 }

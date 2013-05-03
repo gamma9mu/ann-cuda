@@ -7,5 +7,6 @@
 #endif 
 
 int readdata(float**);
+int readexpected(float**);
 
 /* DATA_H__ */
