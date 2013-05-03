@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "data.h"
@@ -10,6 +11,8 @@
 
 /* Learning Rate */
 #define RATE 0.2
+
+#define SSE_RATE 0.01
 
 float randw ( int numPrevious );
 void die(const char *);
@@ -20,12 +23,11 @@ main(int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    float *data, *expected, *w_ih, *theta_h, *w_ho,
-          *theta_o, *output;
+    float *data, *expected, *w_ih, *theta_h, *w_ho, *theta_o;
+    int i, j, count;
+    float sse, sse_max = SSE_RATE;
 
-    int i, j;
-    int count;
-
+    srand(time(NULL));
 
     /* Reads the data and stores it to the memory space.
      * Also returns count for later use.*/
@@ -34,6 +36,8 @@ main(int argc, char *argv[])
         fprintf(stderr, "Training output values differ in number from inputs.\n");
         exit(EXIT_FAILURE);
     }
+
+    sse_max *= count;
 
     /* Computes the sizes to allocate. */
     size_t input_size = (INPUT_SIZE * count) * sizeof(float);
@@ -44,18 +48,10 @@ main(int argc, char *argv[])
     size_t output_size = (OUTPUT_SIZE * count) * sizeof(float);
 
     /* Allocates the memory for the different floats */
-    if ((expected = malloc(output_size)) == NULL)
-        die("main: malloc");
-    if ((w_ih = malloc(weight_input_size)) == NULL)
-        die("main: malloc");
-    if ((theta_h = malloc(theta_in_size)) == NULL)
-        die("main: malloc");
-    if ((w_ho = malloc(weight_output_size)) == NULL)
-        die("main: malloc");
-    if ((theta_o = malloc(theta_out_size)) == NULL)
-        die("main: malloc");
-    if ((output = malloc(output_size)) == NULL)
-        die("main: malloc");
+    if ((w_ih = malloc(weight_input_size)) == NULL) die("main: malloc");
+    if ((theta_h = malloc(theta_in_size)) == NULL) die("main: malloc");
+    if ((w_ho = malloc(weight_output_size)) == NULL) die("main: malloc");
+    if ((theta_o = malloc(theta_out_size)) == NULL) die("main: malloc");
 
     /* Initialize the weight matrices. */
     for (i = 0; i < INPUT_SIZE; ++i)
@@ -71,7 +67,15 @@ main(int argc, char *argv[])
     for (i = 0; i < OUTPUT_SIZE; ++i)
         theta_o[i] = rand() / (float) RAND_MAX;
 
-    backprop_wrapper(data, count, expected, w_ih, theta_h, w_ho, theta_o, RATE);
+
+    sse = sse_max + 100;
+    while (sse > sse_max) {
+        backprop_wrapper(data, count, expected, w_ih, theta_h,
+                w_ho, theta_o, RATE);
+        sse = evaluate_wrapper(data, count, expected, w_ih, theta_h,
+                w_ho, theta_o);
+        printf("SSE: %f\n", sse);
+    }
 
     return EXIT_SUCCESS;
 }
