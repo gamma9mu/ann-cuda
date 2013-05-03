@@ -77,6 +77,9 @@ main(int argc, char *argv[])
         printf("SSE: %f\n", sse);
     }
 
+    free(expected);
+    free(data);
+
     return EXIT_SUCCESS;
 }
 
