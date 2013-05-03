@@ -8,6 +8,7 @@
 #include "backprop.h"
 
 float randw ( int numPrevious );
+void die(const char *);
 
 int
 main(int argc, char *argv[])
@@ -34,14 +35,18 @@ main(int argc, char *argv[])
     size_t output_size = (OUTPUT_SIZE * count) * sizeof(float);
 
     /* Allocates the memory for the different floats */
-    expected = malloc(output_size);
-    w_ih = malloc(weight_input_size);
-    theta_h = malloc(theta_in_size);
-    w_ho = malloc(weight_output_size);
-    theta_o = malloc(theta_out_size);
-    output = malloc(output_size);
-
-
+    if ((expected = malloc(output_size)) == NULL)
+        die("main: malloc");
+    if ((w_ih = malloc(weight_input_size)) == NULL)
+        die("main: malloc");
+    if ((theta_h = malloc(theta_in_size)) == NULL)
+        die("main: malloc");
+    if ((w_ho = malloc(weight_output_size)) == NULL)
+        die("main: malloc");
+    if ((theta_o = malloc(theta_out_size)) == NULL)
+        die("main: malloc");
+    if ((output = malloc(output_size)) == NULL)
+        die("main: malloc");
 
     return EXIT_SUCCESS;
 }
@@ -53,4 +58,10 @@ float randw(int numPrevious)
     weight -= numPrevious / 2.0f;
 
     return weight;
+}
+
+void
+die(const char *prefix) {
+    perror(prefix);
+    exit(EXIT_FAILURE);
 }
