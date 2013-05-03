@@ -119,6 +119,10 @@ readexpected(float **expected) {
     char buf[BUF_SZ];
     int fields, lines = 0;
     float *data = (float *) malloc(NUM_COLUMNS * NUM_ROWS * sizeof(float));
+    if (data == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
 
     if ((f = fopen("data/iris.output", "r")) == NULL) {
         free(data);
