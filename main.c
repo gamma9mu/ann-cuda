@@ -7,6 +7,10 @@
 #include "data.h"
 #include "backprop.h"
 
+
+/* Learning Rate */
+#define RATE 0.2
+
 float randw ( int numPrevious );
 void die(const char *);
 
@@ -66,6 +70,8 @@ main(int argc, char *argv[])
         theta_h[i] = rand() / (float) RAND_MAX;
     for (i = 0; i < OUTPUT_SIZE; ++i)
         theta_o[i] = rand() / (float) RAND_MAX;
+
+    backprop_wrapper(data, count, expected, w_ih, theta_h, w_ho, theta_o, RATE);
 
     return EXIT_SUCCESS;
 }
