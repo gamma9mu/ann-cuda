@@ -26,6 +26,10 @@ main(int argc, char *argv[])
     /* Reads the data and stores it to the memory space.
      * Also returns count for later use.*/
     count = readdata( &data );
+    if (readexpected(&expected) != count) {
+        fprintf(stderr, "Training output values differ in number from inputs.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Computes the sizes to allocate. */
     size_t input_size = (INPUT_SIZE * count) * sizeof(float);
