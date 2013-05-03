@@ -12,7 +12,7 @@ void backprop_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
         float rate);
 
-void evaluate_wrapper(float *data, int count, float *expected,
+float evaluate_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, float *theta_o);
 
 void run_wrapper(float *data, int count, float *expected,

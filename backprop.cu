@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cstdio>
@@ -5,6 +8,14 @@
 extern "C" {
 #include "backprop.h"
 }
+
+void cuda_perror(cudaError_t err, const char * file, int line) {
+    fprintf(stderr, "%s:%d:CUDA Error: %s\n", file, line,
+            cudaGetErrorString(err));
+    exit(EXIT_FAILURE);
+}
+
+#define chk(err) if (err != cudaSuccess) { cuda_perror(err, __FILE__, __LINE__); }
 
 __device__ inline float
 sigmoid(float x)
@@ -231,12 +242,12 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
     /* Copies the variables from the host to the global memory
      * on the device
      */
-    cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice);
+    chk(cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
 
     /* Determines the number of threads based on output and hidden sizes */
     int ThreadsPerBlock;
@@ -257,18 +268,16 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
     }
 
     /* Copies the output weights back to host memory */
-    cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(w_ih, d_w_ih, weight_in_size, cudaMemcpyDeviceToHost);
+    chk(cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost));
+    chk(cudaMemcpy(w_ih, d_w_ih, weight_in_size, cudaMemcpyDeviceToHost));
 
     /* Frees up the allocated memory on the device */
-    cudaFree(d_data);
-    cudaFree(d_expected);
-    cudaFree(d_w_ih);
-    cudaFree(d_theta_h);
-    cudaFree(d_w_ho);
-    cudaFree(d_theta_o);
-
-    return;
+    chk(cudaFree(d_data));
+    chk(cudaFree(d_expected));
+    chk(cudaFree(d_w_ih));
+    chk(cudaFree(d_theta_h));
+    chk(cudaFree(d_w_ho));
+    chk(cudaFree(d_theta_o));
 }
 
 /* Evaluates an ANN's sum of squared errors.
@@ -387,13 +396,14 @@ evaluate(float *data, int count, float *expected,
  * theta_h      activation weights of the hidden layer
  * w_ho         column-major weight matrix for the output layer
  * theta_o      activation weights of the output layer
- * sse          address in global memory to store the SSE into
  *
  * Calls the evaluate kernel with one block, having a single dimension of
  * threads, where the number of threads is the maximum of the number of hidden
  * layer neurons and the number of output layer neurons.
+ *
+ * Returns the sum of squared errors after evaluation.
  */
-extern "C" void evaluate_wrapper(float *data, int count, float *expected,
+extern "C" float evaluate_wrapper(float *data, int count, float *expected,
                                  float *w_ih, float *theta_h, float *w_ho, float *theta_o)
 {
 
@@ -461,12 +471,12 @@ extern "C" void evaluate_wrapper(float *data, int count, float *expected,
 
 
     /* Copies all of the variables over to global memory on the device */
-    cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice);
+    chk(cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
 
     /* Determines what the number of threads should be */
     int ThreadsPerBlock;
@@ -486,20 +496,20 @@ extern "C" void evaluate_wrapper(float *data, int count, float *expected,
         exit(cudaGetLastError());
     }
 
+    float sse;
     /* Copies the output weights back to host memory */
-    cudaMemcpy(w_ih, d_w_ih, weight_in_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost);
+    chk(cudaMemcpy(&sse, d_sse, sizeof(float), cudaMemcpyDeviceToHost));
 
     /* Frees up the allocated memory on the device */
-    cudaFree(d_data);
-    cudaFree(d_expected);
-    cudaFree(d_w_ih);
-    cudaFree(d_theta_h);
-    cudaFree(d_w_ho);
-    cudaFree(d_theta_o);
-    cudaFree(d_sse);
+    chk(cudaFree(d_data));
+    chk(cudaFree(d_expected));
+    chk(cudaFree(d_w_ih));
+    chk(cudaFree(d_theta_h));
+    chk(cudaFree(d_w_ho));
+    chk(cudaFree(d_theta_o));
+    chk(cudaFree(d_sse));
 
-    return;
+    return sse;
 }
 
 /* Runs an ANN on a series of inputs.
@@ -675,13 +685,13 @@ extern "C" void run_wrapper(float *data, int count, float *expected,
     /* Copies the data from the host memory to the device
      * global memory for the run kernel to use */
 
-    cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_output, output, output_size, cudaMemcpyHostToDevice);
+    chk(cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_output, output, output_size, cudaMemcpyHostToDevice));
 
     /* Determines the number of threads based on output size and hidden size */
     int ThreadsPerBlock;
@@ -701,21 +711,15 @@ extern "C" void run_wrapper(float *data, int count, float *expected,
         exit(cudaGetLastError());
     }
 
-    /* Copies the weights back to host memory */
-    cudaMemcpy(w_ih, d_w_ih, weight_in_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost);
-
     /* Copies the output back to host memory */
-    cudaMemcpy(output, d_output, output_size, cudaMemcpyDeviceToHost);
+    chk(cudaMemcpy(output, d_output, output_size, cudaMemcpyDeviceToHost));
 
     /* Frees up the memory on the device */
-    cudaFree(d_data);
-    cudaFree(d_expected);
-    cudaFree(d_w_ih);
-    cudaFree(d_theta_h);
-    cudaFree(d_w_ho);
-    cudaFree(d_theta_o);
-    cudaFree(d_output);
-
-    return;
+    chk(cudaFree(d_data));
+    chk(cudaFree(d_expected));
+    chk(cudaFree(d_w_ih));
+    chk(cudaFree(d_theta_h));
+    chk(cudaFree(d_w_ho));
+    chk(cudaFree(d_theta_o));
+    chk(cudaFree(d_output));
 }
