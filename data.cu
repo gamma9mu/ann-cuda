@@ -13,20 +13,11 @@ extern "C" {
  */
 
 extern "C" int
-readdata( float *data )
+readdata( float **data )
 {
     FILE *file;
-    float** rmData; //Row Major Order
-    rmData = (float**)malloc(NUM_ROWS * sizeof(float*));
-    for (int i = 0; i < NUM_ROWS; i++) {
-        rmData[i] = (float*)malloc(NUM_COLUMNS * sizeof(float));
-    }
-
-    float** cmData; //Column Major Order
-    cmData = (float**)malloc(NUM_ROWS * sizeof(float*));
-    for (int i = 0; i < NUM_COLUMNS; i++) {
-        cmData[i] = (float*)malloc(NUM_ROWS * sizeof(float));
-    }
+    float *rmData; //Row Major Order
+    rmData = (float *) malloc(NUM_COLUMNS * NUM_ROWS * sizeof(float));
 
     float maxValues[4];
     float minValues[4];
@@ -57,7 +48,7 @@ readdata( float *data )
                 if(minValues[dataCount] > temp)
                     minValues[dataCount] = temp;
 
-                rmData[lineCount][dataCount] = temp;
+                rmData[(lineCount * NUM_COLUMNS) + dataCount] = temp;
                 //printf("token: %s\n", token);
                 token = strtok(NULL, ",");
                 dataCount++;
@@ -92,15 +83,12 @@ readdata( float *data )
             for(int j = 0; j < 4; j++)
             {
                 //Normalize
-                rmData[i][j] = 
-                    ((rmData[i][j] - minValues[j])/(maxValues[j] - minValues[j]));
-
-                //Transpose
-                cmData[j][i] = rmData[i][j];
+                rmData[(i * NUM_COLUMNS) + j] = 
+                    ((rmData[(i * NUM_COLUMNS) + j] - minValues[j])/(maxValues[j] - minValues[j]));
             }
         }
         
-        data = *cmData;
+        *data = rmData;
 
         /*
         for(int i = 0; i < lineCount; i++)

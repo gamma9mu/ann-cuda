@@ -24,7 +24,7 @@ main(int argc, char *argv[])
 
     /* Reads the data and stores it to the memory space.
      * Also returns count for later use.*/
-    count = readdata( data );
+    count = readdata( &data );
 
     /* Computes the sizes to allocate. */
     size_t input_size = (INPUT_SIZE * count) * sizeof(float);

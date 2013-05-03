@@ -6,6 +6,6 @@
 
 #endif 
 
-int readdata( float *data );
+int readdata(float**);
 
 /* DATA_H__ */
