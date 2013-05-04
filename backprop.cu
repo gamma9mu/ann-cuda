@@ -280,7 +280,7 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
     chk(cudaFree(d_theta_o));
 }
 
-/* Evaluates an ANN's sum of squared errors.
+/* Evaluates an ANN's average sum of squared errors.
  * data         column-major, 2-d array of inputs (each of INPUT_SIZE length)
  * count        the total number of items in data
  * expected     column-major, 2-d array of expected output values (each of
@@ -289,7 +289,7 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
  * theta_h      activation weights of the hidden layer
  * w_ho         column-major weight matrix for the output layer
  * theta_o      activation weights of the output layer
- * sse          address in global memory to store the SSE into
+ * sse          address in global memory to store the average SSE into
  *
  * This kernel should be called with 1 block, having a single dimension of
  * threads, where the number of threads is the maximum of the number of hidden
@@ -383,7 +383,7 @@ evaluate(float *data, int count, float *expected,
         for (int i = 0; i < OUTPUT_SIZE; ++i) {
             errsum += errors[i];
         }
-        *sse = errsum;
+        *sse = errsum / count;
     }
 }
 

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +13,7 @@
 /* Learning Rate */
 #define RATE 0.2
 
-#define SSE_RATE 0.01
+#define SSE_MAX 0.01
 
 float randw ( int numPrevious );
 static void init_weights(float*, size_t, size_t);
@@ -26,8 +27,9 @@ main(int argc, char *argv[])
     (void) argv;
 
     float *data, *expected, *w_ih, *theta_h, *w_ho, *theta_o;
-    int i, j, count;
-    float sse, sse_max = SSE_RATE;
+    int count, growing = 0, stagnant = 0;
+    long int gen = 0;
+    float sse, sse_i;
 
     srand(time(NULL));
 
@@ -38,8 +40,6 @@ main(int argc, char *argv[])
         fprintf(stderr, "Training output values differ in number from inputs.\n");
         exit(EXIT_FAILURE);
     }
-
-    sse_max *= count;
 
     /* Computes the sizes to allocate. */
     size_t input_size = (INPUT_SIZE * count) * sizeof(float);
@@ -61,15 +61,31 @@ main(int argc, char *argv[])
     init_theta(theta_o, OUTPUT_SIZE);
 
 
+    printf(" Target SSE: %5.3f\n", SSE_MAX);
+    sse = evaluate_wrapper(data, count, expected, w_ih, theta_h, w_ho, theta_o);
+    printf("Initial SSE: %5.3f\n", sse);
 
-    sse = sse_max + 100;
-    while (sse > sse_max) {
+    while (sse > SSE_MAX && growing < 100 && stagnant < 250) {
         backprop_wrapper(data, count, expected, w_ih, theta_h,
                 w_ho, theta_o, RATE);
-        sse = evaluate_wrapper(data, count, expected, w_ih, theta_h,
+        sse_i = evaluate_wrapper(data, count, expected, w_ih, theta_h,
                 w_ho, theta_o);
-        printf("SSE: %f\n", sse);
+        if (fabs(sse - sse_i) < 0.001) {
+            ++stagnant;
+            growing = 0;
+        } else if (sse_i > sse) {
+            ++growing;
+            stagnant = 0;
+        } else {
+            growing = 0;
+            stagnant = 0;
+        }
+        sse = sse_i;
+        printf("Current SSE: %5.3f  Generation: %ld [s: %d; g: %d]\t\r", sse,
+                gen, stagnant, growing);
+        ++gen;
     }
+    fputc('\n', stdout);
 
     free(expected);
     free(data);
