@@ -195,81 +195,40 @@ extern "C" void backprop_wrapper(float *data, int count, float *expected,
     /*Determines the size for output mallocs*/
     size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
 
-    /* Allocates memory for input data on the device */
-    float* d_data;
-    if(cudaSuccess != cudaMalloc(&d_data, input_size) ) {
-        printf("Error allocating d_data for backprop\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates memory for expected output on the device */
-    float* d_expected;
-    if(cudaSuccess != cudaMalloc(&d_expected, output_size) ) {
-        printf("Error allocating d_expected for backprop\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates memory for w_ih on the deivice */
-    float* d_w_ih;
-    if(cudaSuccess != cudaMalloc(&d_w_ih, weight_in_size) ) {
-        printf("Error allocating d_w_ih for backprop\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates memory for theta_h on the device */
-    float* d_theta_h;
-    if(cudaSuccess != cudaMalloc(&d_theta_h, theta_in_size) ) {
-        printf("Error allocating d_theta_h for backprop\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates memory for w_ho on the device */
-    float* d_w_ho;
-    if(cudaSuccess != cudaMalloc(&d_w_ho, weight_out_size) ) {
-        printf("Error allocating d_w_ho for backprop\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates memory for theta_o on the device */
-    float* d_theta_o;
-    if(cudaSuccess != cudaMalloc(&d_theta_o, theta_out_size) ) {
-        printf("Error allocating d_theta_o for backprop\n");
-        exit(cudaGetLastError());
-    }
+    float *d_data, *d_expected, *d_w_ih, *d_theta_h, *d_w_ho, *d_theta_o;
+    chk(cudaMalloc(&d_data, input_size));
+    chk(cudaMalloc(&d_expected, output_size));
+    chk(cudaMalloc(&d_w_ih, weight_in_size));
+    chk(cudaMalloc(&d_theta_h, theta_in_size));
+    chk(cudaMalloc(&d_w_ho, weight_out_size));
+    chk(cudaMalloc(&d_theta_o, theta_out_size));
 
     /* Copies the variables from the host to the global memory
      * on the device
      */
+    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
     chk(cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice));
     chk(cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
 
     /* Determines the number of threads based on output and hidden sizes */
-    int ThreadsPerBlock;
-    if(OUTPUT_SIZE > HIDDEN_SIZE) {
-        ThreadsPerBlock = OUTPUT_SIZE;
-    } else {
-        ThreadsPerBlock = HIDDEN_SIZE;
-    }
-
-    /* Executes the backprop kernel with the proper parameters */
+    int ThreadsPerBlock = (OUTPUT_SIZE>HIDDEN_SIZE) ? OUTPUT_SIZE : HIDDEN_SIZE;
+    chk(cudaThreadSynchronize());
     backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
                                      d_theta_h, d_w_ho, d_theta_o, rate);
 
-    /* Check to see if any errors occurred during kernel call */
     if( cudaSuccess != cudaGetLastError() ) {
         printf("Error running the backprop kernel\n");
         exit(cudaGetLastError());
     }
+    chk(cudaThreadSynchronize());
 
     /* Copies the output weights back to host memory */
-    chk(cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost));
     chk(cudaMemcpy(w_ih, d_w_ih, weight_in_size, cudaMemcpyDeviceToHost));
+    chk(cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost));
 
-    /* Frees up the allocated memory on the device */
     chk(cudaFree(d_data));
     chk(cudaFree(d_expected));
     chk(cudaFree(d_w_ih));
