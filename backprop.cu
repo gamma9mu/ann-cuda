@@ -262,20 +262,24 @@ evaluate(float *data, int count, float *expected,
          float *sse)
 {
     /* Hidden layer weights */
-    __shared__ float w_hid[HIDDEN_SIZE][INPUT_SIZE];
+    __shared__ float w_hid[INPUT_SIZE][HIDDEN_SIZE];
     __shared__ float th_h[HIDDEN_SIZE];
 
     /* Output layer weights */
-    __shared__ float w_out[OUTPUT_SIZE][HIDDEN_SIZE];
+    __shared__ float w_out[HIDDEN_SIZE][OUTPUT_SIZE];
     __shared__ float th_o[HIDDEN_SIZE];
 
     /* Layer output values */
     __shared__ float hid[HIDDEN_SIZE];
     __shared__ float out[OUTPUT_SIZE];
-    __shared__ float errors[OUTPUT_SIZE];
 
     /* Input data */
     __shared__ float input[INPUT_SIZE];
+    __shared__ float expec[OUTPUT_SIZE];
+    __shared__ float errors[OUTPUT_SIZE];
+
+    /* /1* Input data *1/ */
+    /* __shared__ float input[INPUT_SIZE]; */
 
     int tx = threadIdx.x;
 
@@ -283,7 +287,7 @@ evaluate(float *data, int count, float *expected,
     if (tx < HIDDEN_SIZE) {
         th_h[tx] = theta_h[tx];
         for (int i = 0; i < INPUT_SIZE; ++i) {
-            w_hid[tx][i] = w_ih[tx + (INPUT_SIZE * i)];
+            w_hid[i][tx] = w_ih[(tx * INPUT_SIZE) + i];
         }
     }
 
@@ -291,9 +295,8 @@ evaluate(float *data, int count, float *expected,
     if (tx < OUTPUT_SIZE) {
         th_o[tx] = theta_o[tx];
         for (int i = 0; i < HIDDEN_SIZE; ++i) {
-            w_out[tx][i] = w_ho[tx + (OUTPUT_SIZE * i)];
+            w_out[i][tx] = w_ho[(tx * HIDDEN_SIZE) + i];
         }
-        errors[tx] = 0.0f;
     }
 
     /* Process each piece of input data. */
@@ -302,6 +305,9 @@ evaluate(float *data, int count, float *expected,
         if (tx < INPUT_SIZE) {
             input[tx] = data[tx + (i * INPUT_SIZE)];
         }
+        if (tx < OUTPUT_SIZE) {
+            expec[tx] = expected[tx + (i * OUTPUT_SIZE)];
+        }
 
         __syncthreads();
 
@@ -309,7 +315,7 @@ evaluate(float *data, int count, float *expected,
         if (tx < HIDDEN_SIZE) {
             hid[tx] = 0.0f;
             for (int j = 0; j < INPUT_SIZE; ++j) {
-                hid[tx] += input[j] * w_hid[tx][j];
+                hid[tx] += input[j] * w_hid[j][tx];
             }
             hid[tx] -= th_h[tx];
             hid[tx] = sigmoid(hid[tx]);
@@ -321,7 +327,7 @@ evaluate(float *data, int count, float *expected,
         if (tx < OUTPUT_SIZE) {
             out[tx] = 0.0f;
             for (int j = 0; j < HIDDEN_SIZE; ++j) {
-                out[tx] += hid[j] * w_out[tx][j];
+                out[tx] += hid[j] * w_out[j][tx];
             }
             out[tx] -= th_o[tx];
             out[tx] = sigmoid(out[tx]);
@@ -331,7 +337,7 @@ evaluate(float *data, int count, float *expected,
 
         /* Track each output neuron's squared errors. */
         if (tx < OUTPUT_SIZE) {
-            float error = expected[tx + (OUTPUT_SIZE * i)] - out[tx];
+            float error = expec[tx] - out[tx];
             errors[tx] += error * error;
         }
 
