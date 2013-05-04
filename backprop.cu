@@ -46,11 +46,11 @@ backprop(float *data, int count, float *expected,
          float rate)
 {
     /* Hidden layer weights */
-    __shared__ float w_hid[HIDDEN_SIZE][INPUT_SIZE];
+    __shared__ float w_hid[INPUT_SIZE][HIDDEN_SIZE];
     __shared__ float th_h[HIDDEN_SIZE];
 
     /* Output layer weights */
-    __shared__ float w_out[OUTPUT_SIZE][HIDDEN_SIZE];
+    __shared__ float w_out[HIDDEN_SIZE][OUTPUT_SIZE];
     __shared__ float th_o[HIDDEN_SIZE];
 
     /* Layer output values */
@@ -61,6 +61,7 @@ backprop(float *data, int count, float *expected,
 
     /* Input data */
     __shared__ float input[INPUT_SIZE];
+    __shared__ float expec[OUTPUT_SIZE];
 
     int tx = threadIdx.x;
 
@@ -68,7 +69,7 @@ backprop(float *data, int count, float *expected,
     if (tx < HIDDEN_SIZE) {
         th_h[tx] = theta_h[tx];
         for (int i = 0; i < INPUT_SIZE; ++i) {
-            w_hid[tx][i] = w_ih[(tx * INPUT_SIZE) + i];
+            w_hid[i][tx] = w_ih[(tx * INPUT_SIZE) + i];
         }
     }
 
@@ -76,7 +77,7 @@ backprop(float *data, int count, float *expected,
     if (tx < OUTPUT_SIZE) {
         th_o[tx] = theta_o[tx];
         for (int i = 0; i < HIDDEN_SIZE; ++i) {
-            w_out[tx][i] = w_ho[(tx * HIDDEN_SIZE) + i];
+            w_out[i][tx] = w_ho[(tx * HIDDEN_SIZE) + i];
         }
     }
 
@@ -86,6 +87,9 @@ backprop(float *data, int count, float *expected,
         if (tx < INPUT_SIZE) {
             input[tx] = data[tx + (i * INPUT_SIZE)];
         }
+        if (tx < OUTPUT_SIZE) {
+            expec[tx] = expected[tx + (i * OUTPUT_SIZE)];
+        }
 
         __syncthreads();
 
@@ -93,7 +97,7 @@ backprop(float *data, int count, float *expected,
         if (tx < HIDDEN_SIZE) {
             hid[tx] = 0.0f;
             for (int j = 0; j < INPUT_SIZE; ++j) {
-                hid[tx] += input[j] * w_hid[tx][j];
+                hid[tx] += input[j] * w_hid[j][tx];
             }
             hid[tx] -= th_h[tx];
             hid[tx] = sigmoid(hid[tx]);
@@ -105,7 +109,7 @@ backprop(float *data, int count, float *expected,
         if (tx < OUTPUT_SIZE) {
             out[tx] = 0.0f;
             for (int j = 0; j < HIDDEN_SIZE; ++j) {
-                out[tx] += hid[j] * w_out[tx][j];
+                out[tx] += hid[j] * w_out[j][tx];
             }
             out[tx] -= th_o[tx];
             out[tx] = sigmoid(out[tx]);
@@ -117,7 +121,7 @@ backprop(float *data, int count, float *expected,
 
         /* Calculate the error deltas for the output layer. */
         if (tx < OUTPUT_SIZE) {
-            err[tx] = expected[tx + (OUTPUT_SIZE * i)] - out[tx];
+            err[tx] = expec[tx] - out[tx];
             delta[tx] = out[tx] * (1 - out[tx]) * err[tx];
         }
 
@@ -126,13 +130,13 @@ backprop(float *data, int count, float *expected,
         /* Calculate the error deltas for the hidden layer and update the
          * weights. */
         if (tx < HIDDEN_SIZE) {
-            float hdelta = 0.0f;
+            float d_h = 0.0f;
             for (int j = 0; j < OUTPUT_SIZE; ++j) {
-                hdelta += delta[j] * hid[tx];
+                d_h += delta[j] * w_out[tx][j];
             }
-            hdelta *= rate;
+            d_h *= hid[tx] * (1 - hid[tx]);
             for (int j = 0; j < INPUT_SIZE; ++j) {
-                w_hid[tx][j] += hdelta * input[j];
+                w_hid[j][tx] += rate * input[j] * d_h;
             }
         }
 
@@ -143,7 +147,7 @@ backprop(float *data, int count, float *expected,
          */
         if (tx < OUTPUT_SIZE)
             for (int j = 0; j < HIDDEN_SIZE; ++j) {
-                w_out[tx][j] += rate * hid[j] * delta[tx];
+                w_out[j][tx] += rate * hid[j] * delta[tx];
             }
 
         __syncthreads();
@@ -152,14 +156,14 @@ backprop(float *data, int count, float *expected,
     /* Copy the hidden layer's weight matrix out to global memory. */
     if (tx < HIDDEN_SIZE) {
         for (int i = 0; i < INPUT_SIZE; ++i) {
-            w_ih[(tx * INPUT_SIZE) + i] = w_hid[tx][i];
+            w_ih[(tx * INPUT_SIZE) + i] = w_hid[i][tx];
         }
     }
 
     /* Copy the output layer's weight matrix out to global memory. */
     if (tx < OUTPUT_SIZE) {
         for (int i = 0; i < HIDDEN_SIZE; ++i) {
-            w_ho[(tx * HIDDEN_SIZE) + i] = w_out[tx][i];
+            w_ho[(tx * HIDDEN_SIZE) + i] = w_out[i][tx];
         }
     }
 }
