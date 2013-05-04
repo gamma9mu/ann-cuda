@@ -21,6 +21,7 @@ static void run_st(float*, int, float*, float*, float*, float*, float*);
 static float randw ( int numPrevious );
 static void init_weights(float*, size_t, size_t);
 static void init_theta(float*, size_t);
+static void dumpmat(float*, size_t, size_t);
 static void die(const char *);
 
 int
@@ -64,6 +65,8 @@ main(int argc, char *argv[])
 
     memcpy(aw_ih, w_ih, weight_input_size);
     memcpy(aw_ho, w_ho, weight_output_size);
+
+    dumpmat(w_ih, INPUT_SIZE, HIDDEN_SIZE);
 
     run_cuda(data, count, expected, w_ih, theta_h, w_ho, theta_o);
     run_st(data, count, expected, aw_ih, theta_h, aw_ho, theta_o);
@@ -160,6 +163,19 @@ init_weights(float *matrix, size_t dim_x, size_t dim_y) {
     for (x = 0; x < dim_x; ++x)
         for (y = 0; y < dim_y; ++y)
             matrix[(y * dim_x) + x] = randw(dim_x);
+}
+
+static void
+dumpmat(float *matrix, size_t dim_x, size_t dim_y) {
+    size_t x, y;
+    for (x = 0; x < dim_x; ++x) {
+        for (y = 0; y < dim_y; ++y) {
+            printf("%9.6f ", matrix[(y * dim_x) + x]);
+        }
+        fputc('\n', stdout);
+    }
+    fputc('\n', stdout);
+
 }
 
 static void
