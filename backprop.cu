@@ -168,6 +168,59 @@ backprop(float *data, int count, float *expected,
     }
 }
 
+extern "C" void copy_in(d_ann_t *d_ann, float *data, int count, float *expected,
+        float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
+    /*Determines the size for input mallocs*/
+    size_t input_sz = (count * INPUT_SIZE) * sizeof(float);
+    /*Determines the size for hidden sector mallocs*/
+    size_t th_h_sz = HIDDEN_SIZE * sizeof(float);
+    /* Determines the size for theta_o */
+    size_t th_o_sz = OUTPUT_SIZE * sizeof(float);
+    /* Determines the size of input weight */
+    size_t w_ih_sz = (HIDDEN_SIZE * INPUT_SIZE) * sizeof(float);
+    /* Determines the size of output weight */
+    size_t w_ho_sz = (HIDDEN_SIZE * OUTPUT_SIZE) * sizeof(float);
+    /*Determines the size for output mallocs*/
+    size_t out_sz = (count * OUTPUT_SIZE) * sizeof(float);
+
+    d_ann->count = count;
+
+    chk(cudaMalloc(&d_ann->d_data, input_sz));
+    chk(cudaMalloc(&d_ann->d_expected, out_sz));
+    chk(cudaMalloc(&d_ann->d_w_ih, w_ih_sz));
+    chk(cudaMalloc(&d_ann->d_theta_h, th_h_sz));
+    chk(cudaMalloc(&d_ann->d_w_ho, w_ho_sz));
+    chk(cudaMalloc(&d_ann->d_theta_o, th_o_sz));
+
+    /* Copies the variables from the host to the global memory
+     * on the device
+     */
+    chk(cudaMemcpy(d_ann->d_theta_h, theta_h, th_h_sz, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_ann->d_theta_o, theta_o, th_o_sz, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_ann->d_w_ih, w_ih, w_ih_sz, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_ann->d_w_ho, w_ho, w_ho_sz, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_ann->d_data, data, input_sz, cudaMemcpyHostToDevice));
+    chk(cudaMemcpy(d_ann->d_expected, expected, out_sz, cudaMemcpyHostToDevice));
+}
+
+extern "C" void copy_out(d_ann_t *d_ann, float *w_ih, float *w_ho) {
+    /* Determines the size of input weight */
+    size_t w_ih_size = (HIDDEN_SIZE * INPUT_SIZE) * sizeof(float);
+    /* Determines the size of output weight */
+    size_t w_ho_size = (HIDDEN_SIZE * OUTPUT_SIZE) * sizeof(float);
+    /*Determines the size for output mallocs*/
+
+    chk(cudaMemcpy(w_ih, d_ann->d_w_ih, w_ih_size, cudaMemcpyDeviceToHost));
+    chk(cudaMemcpy(w_ho, d_ann->d_w_ho, w_ho_size, cudaMemcpyDeviceToHost));
+
+    chk(cudaFree(d_ann->d_data));
+    chk(cudaFree(d_ann->d_expected));
+    chk(cudaFree(d_ann->d_w_ih));
+    chk(cudaFree(d_ann->d_theta_h));
+    chk(cudaFree(d_ann->d_w_ho));
+    chk(cudaFree(d_ann->d_theta_o));
+}
+
 /* Copies data to device global memory from host memory
  * data         column-major, 2-d array of inputs(each of INPUT_SIZE length
  * count        the total number of items in data
@@ -182,63 +235,20 @@ backprop(float *data, int count, float *expected,
  * This wrapper calls the backprop kernel with 1 block
  */
 
-extern "C" void backprop_wrapper(float *data, int count, float *expected,
-                                 float *w_ih, float *theta_h, float *w_ho,
-                                 float *theta_o, float rate)
-{
-    /*Determines the size for input mallocs*/
-    size_t input_size = (count * INPUT_SIZE) * sizeof(float);
-    /*Determines the size for hidden sector mallocs*/
-    size_t theta_in_size = HIDDEN_SIZE * sizeof(float);
-    /* Determines the size for theta_o */
-    size_t theta_out_size = OUTPUT_SIZE * sizeof(float);
-    /* Determines the size of input weight */
-    size_t weight_in_size = (HIDDEN_SIZE * INPUT_SIZE) * sizeof(float);
-    /* Determines the size of output weight */
-    size_t weight_out_size = (HIDDEN_SIZE * OUTPUT_SIZE) * sizeof(float);
-    /*Determines the size for output mallocs*/
-    size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
-
-    float *d_data, *d_expected, *d_w_ih, *d_theta_h, *d_w_ho, *d_theta_o;
-    chk(cudaMalloc(&d_data, input_size));
-    chk(cudaMalloc(&d_expected, output_size));
-    chk(cudaMalloc(&d_w_ih, weight_in_size));
-    chk(cudaMalloc(&d_theta_h, theta_in_size));
-    chk(cudaMalloc(&d_w_ho, weight_out_size));
-    chk(cudaMalloc(&d_theta_o, theta_out_size));
-
-    /* Copies the variables from the host to the global memory
-     * on the device
-     */
-    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice));
+extern "C" void backprop_wrapper(d_ann_t *d_ann, float rate) {
 
     /* Determines the number of threads based on output and hidden sizes */
     int ThreadsPerBlock = (OUTPUT_SIZE>HIDDEN_SIZE) ? OUTPUT_SIZE : HIDDEN_SIZE;
     chk(cudaThreadSynchronize());
-    backprop<<<1, ThreadsPerBlock>>>(d_data, count, d_expected, d_w_ih,
-                                     d_theta_h, d_w_ho, d_theta_o, rate);
+    backprop<<<1, ThreadsPerBlock>>>(d_ann->d_data, d_ann->count,
+            d_ann->d_expected, d_ann->d_w_ih, d_ann->d_theta_h, d_ann->d_w_ho,
+            d_ann->d_theta_o, rate);
 
     if( cudaSuccess != cudaGetLastError() ) {
         printf("Error running the backprop kernel\n");
         exit(cudaGetLastError());
     }
     chk(cudaThreadSynchronize());
-
-    /* Copies the output weights back to host memory */
-    chk(cudaMemcpy(w_ih, d_w_ih, weight_in_size, cudaMemcpyDeviceToHost));
-    chk(cudaMemcpy(w_ho, d_w_ho, weight_out_size, cudaMemcpyDeviceToHost));
-
-    chk(cudaFree(d_data));
-    chk(cudaFree(d_expected));
-    chk(cudaFree(d_w_ih));
-    chk(cudaFree(d_theta_h));
-    chk(cudaFree(d_w_ho));
-    chk(cudaFree(d_theta_o));
 }
 
 /* Evaluates an ANN's average sum of squared errors.
@@ -370,110 +380,22 @@ evaluate(float *data, int count, float *expected,
  *
  * Returns the sum of squared errors after evaluation.
  */
-extern "C" float evaluate_wrapper(float *data, int count, float *expected,
-                                 float *w_ih, float *theta_h, float *w_ho, float *theta_o)
-{
-
-    /*Determines the size for input mallocs*/
-    size_t input_size = (count * INPUT_SIZE) * sizeof(float);
-    /*Determines the size for hidden sector mallocs*/
-    size_t theta_in_size = HIDDEN_SIZE * sizeof(float);
-    /* Determines the size for theta_o */
-    size_t theta_out_size = OUTPUT_SIZE * sizeof(float);
-    /* Determines the size of input weight */
-    size_t weight_in_size = (HIDDEN_SIZE * INPUT_SIZE) * sizeof(float);
-    /* Determines the size of output weight */
-    size_t weight_out_size = (HIDDEN_SIZE * OUTPUT_SIZE) * sizeof(float);
-    /*Determines the size for output mallocs*/
-    size_t output_size = (count * OUTPUT_SIZE) * sizeof(float);
-
-    /* Allocates the memory for data on the device */
-    float *d_data;
-    if( cudaSuccess != cudaMalloc(&d_data, input_size) ) {
-        printf("Error allocating d_data for evaluate\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates the memory for exected on the device */
-    float *d_expected;
-    if( cudaSuccess != cudaMalloc(&d_expected, output_size) ) {
-        printf("Error allocating expected for evaluate\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates the memory for w_ih on the device */
-    float *d_w_ih;
-    if( cudaSuccess != cudaMalloc(&d_w_ih, weight_in_size) ) {
-        printf("Error allocating w_ih for evaluate\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates the memory for theta_h on the device */
-    float *d_theta_h;
-    if( cudaSuccess != cudaMalloc(&d_theta_h, theta_in_size) ) {
-        printf("Error allocating theta_h for evaluate\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates the memory for w_ho on the device */
-    float *d_w_ho;
-    if( cudaSuccess != cudaMalloc(&d_w_ho, weight_out_size) ) {
-        printf("Error allocating w_ho for evaluate\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates the memory for theta_o on the device */
-    float *d_theta_o;
-    if( cudaSuccess != cudaMalloc(&d_theta_o, theta_out_size) ) {
-        printf("Error allocating theta_o for evaluate\n");
-        exit(cudaGetLastError());
-    }
-
-    /* Allocates the memory for SSE on the device */
+extern "C" float evaluate_wrapper(d_ann_t *d_ann) {
+    float sse;
     float *d_sse;
-    if( cudaSuccess != cudaMalloc(&d_sse, sizeof(float)) ) {
-        printf("Error allocating sse for evaluate\n");
-        exit(cudaGetLastError());
-    }
+    int ThreadsPerBlock = (OUTPUT_SIZE>HIDDEN_SIZE) ? OUTPUT_SIZE : HIDDEN_SIZE;
 
+    chk(cudaMalloc(&d_sse, sizeof(float)));
+    evaluate<<<1, ThreadsPerBlock>>>(d_ann->d_data, d_ann->count,
+            d_ann->d_expected, d_ann->d_w_ih, d_ann->d_theta_h, d_ann->d_w_ho,
+            d_ann->d_theta_o, d_sse);
 
-    /* Copies all of the variables over to global memory on the device */
-    chk(cudaMemcpy(d_data, data, input_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_expected, expected, output_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_w_ih, w_ih, weight_in_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_theta_h, theta_h, theta_in_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_w_ho, w_ho, weight_out_size, cudaMemcpyHostToDevice));
-    chk(cudaMemcpy(d_theta_o, theta_o, theta_out_size, cudaMemcpyHostToDevice));
-
-    /* Determines what the number of threads should be */
-    int ThreadsPerBlock;
-    if(OUTPUT_SIZE > HIDDEN_SIZE) {
-        ThreadsPerBlock = OUTPUT_SIZE;
-    } else {
-        ThreadsPerBlock = HIDDEN_SIZE;
-    }
-
-    /* Runs the evaluate kernel with the proper parameters */
-    evaluate<<<1, ThreadsPerBlock>>>(d_data, count, d_expected,
-                                     d_w_ih, d_theta_h, d_w_ho, d_theta_o, d_sse);
-
-    /* Perform simple error checking on kernel run */
     if( cudaSuccess != cudaGetLastError() ) {
         printf("Error while running the evaluate kernel\n");
         exit(cudaGetLastError());
     }
 
-    float sse;
-    /* Copies the output weights back to host memory */
     chk(cudaMemcpy(&sse, d_sse, sizeof(float), cudaMemcpyDeviceToHost));
-
-    /* Frees up the allocated memory on the device */
-    chk(cudaFree(d_data));
-    chk(cudaFree(d_expected));
-    chk(cudaFree(d_w_ih));
-    chk(cudaFree(d_theta_h));
-    chk(cudaFree(d_w_ho));
-    chk(cudaFree(d_theta_o));
     chk(cudaFree(d_sse));
 
     return sse;

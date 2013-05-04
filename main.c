@@ -84,16 +84,17 @@ run_cuda(float *data, int count, float *expected,
     long int gen = 0;
     unsigned int growing = 0, stagnant = 0;
 
+    d_ann_t ann;
+    copy_in(&ann, data, count, expected, w_ih, theta_h, w_ho, theta_o);
+
     printf("*** Running CUDA ANN\n");
     printf(" Target SSE: %5.3f\n", SSE_MAX);
-    sse = evaluate_wrapper(data, count, expected, w_ih, theta_h, w_ho, theta_o);
+    sse = evaluate_wrapper(&ann);
     printf("Initial SSE: %5.3f\n", sse);
 
     while (sse > SSE_MAX && growing < 100 && stagnant < 250) {
-        backprop_wrapper(data, count, expected, w_ih, theta_h,
-                w_ho, theta_o, RATE);
-        sse_i = evaluate_wrapper(data, count, expected, w_ih, theta_h,
-                w_ho, theta_o);
+        backprop_wrapper(&ann, RATE);
+        sse_i = evaluate_wrapper(&ann);
         if (fabs(sse - sse_i) < 0.001) {
             ++stagnant;
             growing = 0;
@@ -110,6 +111,7 @@ run_cuda(float *data, int count, float *expected,
         ++gen;
     }
     fputs("\n\n", stdout);
+    copy_out(&ann, w_ih, w_ho);
 }
 
 static void
@@ -121,7 +123,7 @@ run_st(float *data, int count, float *expected,
 
     printf("*** Running Single-Threaded ANN\n");
     printf(" Target SSE: %5.3f\n", SSE_MAX);
-    sse = evaluate_wrapper(data, count, expected, w_ih, theta_h, w_ho, theta_o);
+    sse = st_evaluate(data, count, expected, w_ih, theta_h, w_ho, theta_o);
     printf("Initial SSE: %5.3f\n", sse);
 
     while (sse > SSE_MAX && growing < 100 && stagnant < 250) {

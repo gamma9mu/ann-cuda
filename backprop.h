@@ -6,13 +6,23 @@
 
 #define HIDDEN_SIZE 8
 
-void backprop_wrapper(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-        float rate);
 
-float evaluate_wrapper(float *data, int count, float *expected,
-        float *w_ih, float *theta_h, float *w_ho, float *theta_o);
+typedef struct {
+    float *d_data;
+    float *d_expected;
+    float *d_w_ih;
+    float *d_theta_h;
+    float *d_w_ho;
+    float *d_theta_o;
+    int count;
+} d_ann_t;
 
+
+void copy_in(d_ann_t*, float*, int, float*, float*, float*, float*, float*);
+void copy_out(d_ann_t*, float*, float*);
+
+void backprop_wrapper(d_ann_t*, float);
+float evaluate_wrapper(d_ann_t*);
 void run_wrapper(float *data, int count, float *expected,
         float *w_ih, float *theta_h, float *w_ho, float *theta_o,
         float *output);
