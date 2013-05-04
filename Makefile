@@ -5,7 +5,7 @@ LDFLAGS := -L/opt/cuda/lib64/ -lcuda -lcudart
 .PHONY: all clean
 
 EXE := ann_cuda
-OBJ := main.o data.o backprop.o
+OBJ := main.o data.o backprop.o st.o
 
 all: $(EXE)
 	
