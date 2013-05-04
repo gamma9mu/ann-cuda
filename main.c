@@ -81,7 +81,7 @@ main(int argc, char *argv[])
             stagnant = 0;
         }
         sse = sse_i;
-        printf("Current SSE: %5.3f  Generation: %ld [s: %d; g: %d]\t\r", sse,
+        printf("Current SSE: %5.3f\tIteration: %ld [s: %d; g: %d]\t\r", sse,
                 gen, stagnant, growing);
         ++gen;
     }
