@@ -56,10 +56,10 @@ main(int argc, char *argv[])
     /* Initialize the weight matrices. */
     for (i = 0; i < INPUT_SIZE; ++i)
         for (j = 0; j < HIDDEN_SIZE; ++j)
-            w_ih[(j * HIDDEN_SIZE) + i] = randw(INPUT_SIZE);
+            w_ih[(j * INPUT_SIZE) + i] = randw(INPUT_SIZE);
     for (i = 0; i < HIDDEN_SIZE; ++i)
         for (j = 0; j < OUTPUT_SIZE; ++j)
-            w_ih[(j * OUTPUT_SIZE) + i] = randw(HIDDEN_SIZE);
+            w_ho[(j * HIDDEN_SIZE) + i] = randw(HIDDEN_SIZE);
 
     /* Initialize the thetas. */
     for (i = 0; i < HIDDEN_SIZE; ++i)
