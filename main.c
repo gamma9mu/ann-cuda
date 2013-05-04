@@ -15,6 +15,8 @@
 #define SSE_RATE 0.01
 
 float randw ( int numPrevious );
+static void init_weights(float*, size_t, size_t);
+static void init_theta(float*, size_t);
 void die(const char *);
 
 int
@@ -53,19 +55,11 @@ main(int argc, char *argv[])
     if ((w_ho = malloc(weight_output_size)) == NULL) die("main: malloc");
     if ((theta_o = malloc(theta_out_size)) == NULL) die("main: malloc");
 
-    /* Initialize the weight matrices. */
-    for (i = 0; i < INPUT_SIZE; ++i)
-        for (j = 0; j < HIDDEN_SIZE; ++j)
-            w_ih[(j * INPUT_SIZE) + i] = randw(INPUT_SIZE);
-    for (i = 0; i < HIDDEN_SIZE; ++i)
-        for (j = 0; j < OUTPUT_SIZE; ++j)
-            w_ho[(j * HIDDEN_SIZE) + i] = randw(HIDDEN_SIZE);
+    init_weights(w_ih, INPUT_SIZE, HIDDEN_SIZE);
+    init_weights(w_ho, HIDDEN_SIZE, OUTPUT_SIZE);
+    init_theta(theta_h, HIDDEN_SIZE);
+    init_theta(theta_o, OUTPUT_SIZE);
 
-    /* Initialize the thetas. */
-    for (i = 0; i < HIDDEN_SIZE; ++i)
-        theta_h[i] = rand() / (float) RAND_MAX;
-    for (i = 0; i < OUTPUT_SIZE; ++i)
-        theta_o[i] = rand() / (float) RAND_MAX;
 
 
     sse = sse_max + 100;
@@ -90,6 +84,21 @@ float randw(int numPrevious)
     weight -= numPrevious / 2.0f;
 
     return weight;
+}
+
+static void
+init_weights(float *matrix, size_t dim_x, size_t dim_y) {
+    int x, y;
+    for (x = 0; x < dim_x; ++x)
+        for (y = 0; y < dim_y; ++y)
+            matrix[(y * dim_x) + x] = randw(dim_x);
+}
+
+static void
+init_theta(float *vector, size_t length) {
+    int i;
+    for (i = 0; i < length; ++i)
+        vector[i] = rand() / (float) RAND_MAX;
 }
 
 void
