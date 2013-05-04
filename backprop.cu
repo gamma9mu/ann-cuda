@@ -9,7 +9,7 @@ extern "C" {
 #include "backprop.h"
 }
 
-void cuda_perror(cudaError_t err, const char * file, int line) {
+static void cuda_perror(cudaError_t err, const char * file, int line) {
     fprintf(stderr, "%s:%d:CUDA Error: %s\n", file, line,
             cudaGetErrorString(err));
     exit(EXIT_FAILURE);
@@ -18,8 +18,7 @@ void cuda_perror(cudaError_t err, const char * file, int line) {
 #define chk(err) if (err != cudaSuccess) { cuda_perror(err, __FILE__, __LINE__); }
 
 __device__ inline float
-sigmoid(float x)
-{
+sigmoid(float x) {
     return 1.0f / (1.0f + expf(-x));
 }
 
@@ -180,10 +179,9 @@ backprop(float *data, int count, float *expected,
  */
 
 extern "C" void backprop_wrapper(float *data, int count, float *expected,
-                                 float *w_ih, float *theta_h, float *w_ho, float *theta_o,
-                                 float rate)
+                                 float *w_ih, float *theta_h, float *w_ho,
+                                 float *theta_o, float rate)
 {
-    
     /*Determines the size for input mallocs*/
     size_t input_size = (count * INPUT_SIZE) * sizeof(float);
     /*Determines the size for hidden sector mallocs*/
