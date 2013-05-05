@@ -69,8 +69,6 @@ main(int argc, char *argv[])
     memcpy(aw_ih, w_ih, weight_input_size);
     memcpy(aw_ho, w_ho, weight_output_size);
 
-    dumpmat(w_ih, INPUT_SIZE, HIDDEN_SIZE);
-
     run_cuda(data, count, expected, w_ih, theta_h, w_ho, theta_o);
     run_st(data, count, expected, aw_ih, theta_h, aw_ho, theta_o);
 
