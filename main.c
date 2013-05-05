@@ -6,8 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "backprop.h"
-#include "st.h"
+#include "ann.h"
 
 #define NUM_ROWS 150
 #define NUM_COLUMNS 4

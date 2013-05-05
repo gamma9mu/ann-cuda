@@ -6,7 +6,7 @@
 #include <cstdio>
 
 extern "C" {
-#include "backprop.h"
+#include "ann.h"
 }
 
 static void cuda_perror(cudaError_t err, const char * file, int line) {

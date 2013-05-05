@@ -3,7 +3,7 @@
 #endif
 
 #include <math.h>
-#include "backprop.h"
+#include "ann.h"
 
 static float sigmoid(float);
 
