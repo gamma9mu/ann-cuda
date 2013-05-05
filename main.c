@@ -81,23 +81,25 @@ main(int argc, char *argv[])
 }
 
 static void
-run_cuda(float *data, int count, float *expected,
+run_cuda(float *inputs, int count, float *expected,
          float *w_ih, float *theta_h, float *w_ho, float *theta_o) {
     float sse, sse_i;
     long int gen = 0;
     unsigned int growing = 0, stagnant = 0;
 
     d_ann_t ann;
-    copy_in(&ann, data, count, expected, w_ih, theta_h, w_ho, theta_o);
+    d_data_t data;
+    copy_in_ann(&ann, w_ih, theta_h, w_ho, theta_o);
+    copy_in_data(&data, inputs, count, expected, 1);
 
     printf("*** Running CUDA ANN\n");
     printf(" Target SSE: %5.3f\n", SSE_MAX);
-    sse = evaluate_wrapper(&ann);
+    sse = evaluate_wrapper(&ann, &data);
     printf("Initial SSE: %5.3f\n", sse);
 
     while (sse > SSE_MAX && growing < 100 && stagnant < 250) {
-        backprop_wrapper(&ann, RATE);
-        sse_i = evaluate_wrapper(&ann);
+        backprop_wrapper(&ann, &data, RATE);
+        sse_i = evaluate_wrapper(&ann, &data);
         if (fabs(sse - sse_i) < 0.001) {
             ++stagnant;
             growing = 0;
@@ -114,7 +116,7 @@ run_cuda(float *data, int count, float *expected,
         ++gen;
     }
     fputs("\n\n", stdout);
-    copy_out(&ann, w_ih, w_ho);
+    copy_out_ann(&ann, w_ih, w_ho);
 }
 
 static void
